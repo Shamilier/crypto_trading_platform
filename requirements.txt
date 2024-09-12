@@ -1,0 +1,15 @@
+fastapi
+uvicorn
+jinja2
+tortoise-orm[asyncpg]
+bcrypt==3.2.0
+passlib[bcrypt]
+aerich
+python-multipart
+PyJWT
+itsdangerous
+celery
+docker
+redis
+
+

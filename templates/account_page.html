@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Личный кабинет</title>
+    <link rel="stylesheet" href="/static/styles.css"> <!-- Добавьте CSS, если у вас есть -->
+</head>
+<body>
+    <header>
+        <h1>Добро пожаловать, {{ username }}!</h1>
+    </header>
+
+    <main>
+        <section>
+            <h2>Ваши настройки и данные</h2>
+            <p>Это ваш личный кабинет. Здесь вы можете управлять вашими стратегиями и настройками.</p>
+            <!-- Здесь можно добавить кнопки для управления контейнером -->
+            <form action="/start_bot" method="post">
+                <button type="submit">Запустить бота</button>
+            </form>
+            <form action="/stop_bot" method="post">
+                <button type="submit">Остановить бота</button>
+            </form>
+        </section>
+
+        <section>
+            <h2>Ваши стратегии</h2>
+            <p>Стратегии, которые вы настроили, появятся здесь.</p>
+        </section>
+    </main>
+
+    <footer>
+        <p>© 2024 Крипто Торговая Платформа</p>
+    </footer>
+</body>
+</html>
