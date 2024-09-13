@@ -14,11 +14,17 @@ from app.dependencies import get_current_user
 from tortoise.exceptions import IntegrityError
 from tortoise.exceptions import DoesNotExist
 from app.celery_worker import create_freqtrade_container
+# from fastapi import APIRouter, Request, Depends, HTTPException
+# from starlette.responses import RedirectResponse
+# from app.dependencies import get_current_user  # Проверка токенов
+from app.models import Containers
+
 
 REFRESH_TOKEN_EXPIRE_DAYS = 7
 
 auth_routes = APIRouter()
 templates = Jinja2Templates(directory="templates")
+
 
 # ------
 
@@ -207,10 +213,38 @@ async def main_page(request: Request):
 async def account_page(request: Request, current_user: User = Depends(get_current_user)):
     user_id = current_user.id
     
-    # Создаем директорию пользователя и копируем туда файлы
-    user_directory = create_user_directory(user_id)
+    existing_container = await Containers.filter(user_id=user_id, status="running").first()
     
-    # Запускаем Celery задачу для создания Docker контейнера
-    create_freqtrade_container.delay(user_id)
+    if not existing_container:
+        user_directory = create_user_directory(user_id)
+
+        create_freqtrade_container.delay(user_id)
     
-    return templates.TemplateResponse("account_page.html", {"request": request, "username": current_user.username})
+    return templates.TemplateResponse("account_page.html", {
+    "request": request,
+    "username": current_user.username,
+    "user_id": current_user.id
+})
+
+
+
+@auth_routes.get("/dashboard/user_{user_id:int}")
+async def user_dashboard(user_id: int, request: Request, current_user: User = Depends(get_current_user)):
+    # Проверка токена и прав доступа
+    if current_user.id != user_id:
+        raise HTTPException(status_code=403, detail="Доступ запрещен")
+
+    # Получение информации о контейнере пользователя
+    try:
+        # Используем filter, чтобы избежать MultipleObjectsReturned
+        container = await Containers.filter(user_id=user_id).first()
+        
+        if not container:
+            raise HTTPException(status_code=404, detail="Контейнер не найден")
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка сервера: {str(e)}")
+
+    # Перенаправление пользователя на Freqtrade UI, используя порт из базы данных
+    redirect_url = f"http://localhost:{container.port}/"
+    return RedirectResponse(redirect_url)

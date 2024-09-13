@@ -2,8 +2,11 @@ from fastapi import FastAPI
 from .routes import auth_routes
 from .database import init, close
 from starlette.middleware.sessions import SessionMiddleware
+from starlette.staticfiles import StaticFiles
 
 app = FastAPI()
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 SECRET_KEY = "shamil-max"
 

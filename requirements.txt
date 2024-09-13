@@ -11,5 +11,6 @@ itsdangerous
 celery
 docker
 redis
+cryptography
 
 

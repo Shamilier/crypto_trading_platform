@@ -1,0 +1,104 @@
+/* Основные стили для всего сайта */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: #ffffff; /* Белый фон, характерный для минималистичных сайтов */
+    color: #333333; /* Темный цвет текста для удобочитаемости */
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+/* Контейнер с контентом по центру */
+.content {
+    text-align: center;
+    padding: 20px;
+}
+
+/* Заголовки */
+h1, h2, h3 {
+    font-weight: 400; /* Легкий вес шрифта для чистого и современного вида */
+    margin-bottom: 20px;
+    color: #000000; /* Черный цвет для заголовков */
+}
+
+h1 {
+    font-size: 2.8em;
+}
+
+h2 {
+    font-size: 2.2em;
+}
+
+p {
+    font-size: 1.1em;
+    color: #666666; /* Светло-серый для текста */
+    margin-bottom: 20px;
+    line-height: 1.6em; /* Увеличенная межстрочная высота для читабельности */
+}
+
+/* Кнопки */
+button {
+    padding: 14px 28px;
+    margin: 10px;
+    background-color: #0071e3; /* Синий цвет, похожий на стили Apple */
+    color: white;
+    border: none;
+    border-radius: 28px;
+    cursor: pointer;
+    font-size: 1.1em;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* Легкая тень для объема */
+}
+
+/* Стили кнопок при наведении */
+button:hover {
+    background-color: #005bb5; /* Темный оттенок синего при наведении */
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15); /* Более выраженная тень */
+}
+
+/* Анимация появления элементов */
+.content {
+    animation: fadeIn 0.8s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Стили для ссылок */
+a {
+    color: #0071e3;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.3s ease;
+}
+
+a:hover {
+    color: #005bb5;
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+
+    h1 {
+        font-size: 2.2em;
+    }
+
+    button {
+        padding: 12px 24px;
+        font-size: 1em;
+    }
+}
