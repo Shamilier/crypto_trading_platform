@@ -130,7 +130,7 @@ async def refresh_token(request: Request):
 
     # Обновление Access токена в cookies
     response = RedirectResponse(url="/", status_code=302)
-    response.set_cookie(key="access_token", value=access_token, httponly=True)
+    response.set_cookie(key="access_token", value=access_token, httponly=True, secure=False, samesite='Lax')
     return response
 
 
@@ -166,8 +166,8 @@ async def post_login(request: Request, username: str = Form(...), password: str 
         
         # Устанавливаем токены в cookies
         response = RedirectResponse(url="/", status_code=302)
-        response.set_cookie(key="access_token", value=access_token, httponly=True, secure=True, samesite='Lax')
-        response.set_cookie(key="refresh_token", value=refresh_token_value, httponly=True, secure=True, samesite='Lax')
+        response.set_cookie(key="access_token", value=access_token, httponly=True, secure=False, samesite='Lax')
+        response.set_cookie(key="refresh_token", value=refresh_token_value, httponly=True, secure=False, samesite='Lax')
         
         return response
     else:
