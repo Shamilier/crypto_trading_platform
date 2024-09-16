@@ -47,6 +47,7 @@ def copy_to_container(container, source_path, target_path):
 
 # Функция для получения следующего доступного порта
 async def get_next_available_port():
+    # sourcery skip: assign-if-exp, reintroduce-else
     last_container = await Containers.all().order_by('-port').first()
     if last_container:
         return last_container.port + 1
@@ -98,6 +99,7 @@ async def _create_freqtrade_container(user_id):
                     command=["trade", "-c", "/freqtrade/user_data/config.json", "--strategy", "ScalpFutures"]
                 )
 
+
                 # Стартуем контейнер
                 container.start()
 
@@ -115,7 +117,7 @@ async def _create_freqtrade_container(user_id):
                 return f"Container {container_name} created on port {next_port} and user data copied."
             
             except docker.errors.ImageNotFound:
-                return f"Error: Image freqtradeorg/freqtrade:stable not found."
+                return "Error: Image freqtradeorg/freqtrade:stable not found."
             
             except Exception as e:
                 return f"Error occurred: {str(e)}"
