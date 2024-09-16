@@ -230,16 +230,13 @@ async def account_page(request: Request, current_user: User = Depends(get_curren
 
 @auth_routes.get("/dashboard/user_{user_id:int}")
 async def user_dashboard(user_id: int, request: Request, current_user: User = Depends(get_current_user)):
-    print(f"Received: user_id={user_id}, request={request}, current_user={current_user}")
     # Проверка токена и прав доступа
     if current_user.id != user_id:
         raise HTTPException(status_code=403, detail="Доступ запрещен")
 
     # Получение информации о контейнере пользователя
     try:
-        # Используем filter, чтобы избежать MultipleObjectsReturned
         container = await Containers.filter(user_id=user_id).first()
-        print(container.port)
         
         if not container:
             raise HTTPException(status_code=404, detail="Контейнер не найден")
@@ -247,6 +244,36 @@ async def user_dashboard(user_id: int, request: Request, current_user: User = De
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка сервера: {str(e)}")
 
-    # Перенаправление пользователя на Freqtrade UI, используя порт из базы данных
-    public_url = f"http://hse-monopoly.online:{container.port}/"
-    return RedirectResponse(public_url)
+    # Создаем перенаправление на локальный порт, но пользователю показываем /dashboard/user_{user_id:int}
+    public_url = f"/dashboard/user_{user_id:int}"  # URL для пользователя
+    internal_url = f"http://127.0.0.1:{container.port}"  # Внутренний URL на локальный порт Freqtrade
+
+    # Проксируем запрос через FastAPI
+    return RedirectResponse(internal_url)
+
+# @auth_routes.get("/dashboard/user_{user_id:int}", response_class=HTMLResponse)
+# async def user_dashboard(user_id: int, request: Request, current_user: User = Depends(get_current_user)):
+#     # Проверка токена и прав доступа
+#     if current_user.id != user_id:
+#         raise HTTPException(status_code=403, detail="Доступ запрещен")
+
+#     # Получение информации о контейнере пользователя
+#     try:
+#         container = await Containers.filter(user_id=user_id).first()
+#         if not container:
+#             raise HTTPException(status_code=404, detail="Контейнер не найден")
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"Ошибка сервера: {str(e)}")
+
+#     # Возвращаем HTML с JavaScript для перенаправления
+#     return f"""
+#     <html>
+#         <head>
+#             <meta http-equiv="refresh" content="0; url=http://hse-monopoly.online:{container.port}/" />
+#         </head>
+#         <body>
+#             <p>Redirecting to Freqtrade UI...</p>
+#         </body>
+#     </html>
+#     """
+
