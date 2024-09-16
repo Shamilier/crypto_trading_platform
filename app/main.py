@@ -6,6 +6,11 @@ from starlette.staticfiles import StaticFiles
 
 app = FastAPI()
 
+@app.on_event("startup")
+async def startup():
+    await init()
+
+
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 SECRET_KEY = "shamil-max"
@@ -13,9 +18,6 @@ SECRET_KEY = "shamil-max"
 app.include_router(auth_routes)
 app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
 
-@app.on_event("startup")
-async def startup():
-    await init()
 
 @app.on_event("shutdown")
 async def shutdown():
