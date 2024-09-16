@@ -16,7 +16,7 @@ TORTOISE_ORM = {
 
 async def init():
     await Tortoise.init(config=TORTOISE_ORM)
-    await Tortoise.generate_schemas(safe=False)  # Пересоздание схемы без миграций
+    await Tortoise.generate_schemas(safe=True)  # Пересоздание схемы без миграций
 
 
 async def close():
