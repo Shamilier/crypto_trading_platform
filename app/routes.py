@@ -246,5 +246,5 @@ async def user_dashboard(user_id: int, request: Request, current_user: User = De
         raise HTTPException(status_code=500, detail=f"Ошибка сервера: {str(e)}")
 
     # Перенаправление пользователя на Freqtrade UI, используя порт из базы данных
-    redirect_url = f"http://localhost:{container.port}/"
-    return RedirectResponse(redirect_url)
+    public_url = f"http://hse-monopoly.online/account/user_{user_id}" # Используем публичный домен
+    return RedirectResponse(public_url)
