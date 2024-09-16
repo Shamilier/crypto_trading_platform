@@ -245,7 +245,7 @@ async def user_dashboard(user_id: int, request: Request, current_user: User = De
         raise HTTPException(status_code=500, detail=f"Ошибка сервера: {str(e)}")
 
     # Создаем перенаправление на локальный порт, но пользователю показываем /dashboard/user_{user_id:int}
-    public_url = f"/dashboard/user_{user_id:int}"  # URL для пользователя
+    ppublic_url = f"/dashboard/user_{user_id}"   # URL для пользователя
     internal_url = f"http://127.0.0.1:{container.port}"  # Внутренний URL на локальный порт Freqtrade
 
     # Проксируем запрос через FastAPI
