@@ -51,7 +51,7 @@ async def get_next_available_port():
     last_container = await Containers.all().order_by('-port').first()
     if last_container:
         return last_container.port + 1
-    return 3000  # Начинаем с порта 3000
+    return 3001  # Начинаем с порта 3000
 
 
 def run_sync(func):
