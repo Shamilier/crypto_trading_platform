@@ -283,5 +283,5 @@ async def user_dashboard(user_id: int, request: Request, current_user: User = De
     # Проверяем, имеет ли пользователь доступ
     if current_user.id != user_id:
         raise HTTPException(status_code=403, detail="Доступ запрещен")
-    return
+    return HTMLResponse(status_code=200)
 
