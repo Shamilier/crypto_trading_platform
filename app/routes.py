@@ -282,16 +282,15 @@ async def account_page(request: Request, current_user: User = Depends(get_curren
 
 @auth_routes.get("/authenticate")
 async def authenticate(request: Request, current_user: User = Depends(get_current_user)):
-    user_id = int(request.headers.get('X-User-ID'))
+    original_uri = request.headers.get('X-Original-URI')
+    if not original_uri:
+        return Response(status_code=403)
 
+    import re
+    match = re.match(r'/user_(\d+)/', original_uri)
+    if not match:
+        return Response(status_code=403)
+    user_id = int(match.group(1))
     if current_user.id != user_id:
         return Response(status_code=403)
     return Response(status_code=200)
-
-@auth_routes.get("/user_{user_id}/dashboard")
-async def user_dashboard(user_id: int, request: Request, current_user: User = Depends(get_current_user)):
-    # Проверяем, имеет ли пользователь доступ
-    if current_user.id != user_id:
-        raise HTTPException(status_code=403, detail="Доступ запрещен")
-    return HTMLResponse(status_code=200)
-
