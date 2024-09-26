@@ -18,6 +18,8 @@ from app.celery_worker import create_freqtrade_container
 # from starlette.responses import RedirectResponse
 # from app.dependencies import get_current_user  # Проверка токенов
 from app.models import Containers
+from fastapi.responses import Response
+
 
 
 REFRESH_TOKEN_EXPIRE_DAYS = 7
