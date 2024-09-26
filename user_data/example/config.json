@@ -4,6 +4,7 @@
         "enabled": true,
         "listen_ip_address": "0.0.0.0",
         "listen_port": 8080,
+        "basepath": "/user_1/dashboard",
         "verbosity": "error",
         "enable_openapi": false,
         "jwt_secret_key": "4f18386ddcf26d809c2e694bc8b676545df044a11615b9dce834c87c166607f1",
