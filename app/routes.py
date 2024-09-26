@@ -278,6 +278,14 @@ async def account_page(request: Request, current_user: User = Depends(get_curren
 
 # routes.py
 
+@auth_routes.get("/authenticate")
+async def authenticate(request: Request, current_user: User = Depends(get_current_user)):
+    user_id = int(request.headers.get('X-User-ID'))
+
+    if current_user.id != user_id:
+        return Response(status_code=403)
+    return Response(status_code=200)
+
 @auth_routes.get("/user_{user_id}/dashboard")
 async def user_dashboard(user_id: int, request: Request, current_user: User = Depends(get_current_user)):
     # Проверяем, имеет ли пользователь доступ
