@@ -96,7 +96,17 @@ async def _create_freqtrade_container(user_id):
                     name=container_name,
                     detach=True,
                     ports={'8080/tcp': ('0.0.0.0', next_port)},  # Назначаем порт
-                    command=["trade", "-c", "/freqtrade/user_data/config.json", "--strategy", "ScalpFutures"]
+                    command=[
+                        "trade",
+                        "-c",
+                        "/freqtrade/user_data/config.json",
+                        "--strategy",
+                        "ScalpFutures",
+                        "--webserver-basepath",
+                        f"/user_{user_id}/dashboard",
+                        "--api-server-basepath",
+                        f"/user_{user_id}/api"
+                    ]
                 )
 
 
