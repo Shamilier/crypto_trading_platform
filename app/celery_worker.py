@@ -101,11 +101,7 @@ async def _create_freqtrade_container(user_id):
                         "-c",
                         "/freqtrade/user_data/config.json",
                         "--strategy",
-                        "ScalpFutures",
-                        "--webserver-basepath",
-                        f"/user_{user_id}/dashboard",
-                        "--api-server-basepath",
-                        f"/user_{user_id}/api"
+                        "ScalpFutures"
                     ]
                 )
 

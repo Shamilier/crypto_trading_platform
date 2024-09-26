@@ -1,5 +1,13 @@
 
+
 {
+  "ui": {
+    "enabled": true,
+    "websocket": true,
+    "show_restart": true,
+    "status_update_interval": 60,
+    "basepath": "/user_1/dashboard"
+  },
     "api_server": {
         "enabled": true,
         "listen_ip_address": "0.0.0.0",
@@ -9,7 +17,7 @@
         "enable_openapi": false,
         "jwt_secret_key": "4f18386ddcf26d809c2e694bc8b676545df044a11615b9dce834c87c166607f1",
         "ws_token": "eBRTb4zeemn2TzrNTLLIEHruxyxCDTMZnQ",
-        "CORS_origins": ["http://localhost:8080"],
+        "CORS_origins": ["*"],
         "username": "fq",
         "password": "fq"
     },
