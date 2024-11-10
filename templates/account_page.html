@@ -4,36 +4,133 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Личный кабинет</title>
-    <link rel="stylesheet" href="/static/styles.css"> <!-- Добавьте CSS, если у вас есть -->
+    <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
     <header>
         <h1>Добро пожаловать, {{ username }}!</h1>
     </header>
 
-    <main>
-        <section>
-            <h2>Ваши настройки и данные</h2>
-            <p>Это ваш личный кабинет. Здесь вы можете управлять вашими стратегиями и настройками.</p>
-            <!-- Здесь можно добавить кнопки для управления контейнером -->
-            <form action="/start_bot" method="post">
-                <button type="submit">Запустить бота</button>
-            </form>
-            <form action="/stop_bot" method="post">
-                <button type="submit">Остановить бота</button>
-            </form>
-            <a href="/user_{{ user_id }}/dashboard">Перейти в личный кабинет</a>
-            
-        </section>
+    <div class="account-container">
+        <!-- Левое меню -->
+        <aside class="sidebar">
+            <ul>
+                <li onclick="showSection('info')">Основная информация</li>
+                <li onclick="showSection('catalog')">Каталог</li>
+                <li onclick="showSection('api')">API ключи</li>
+            </ul>
+        </aside>
 
-        <section>
-            <h2>Ваши стратегии</h2>
-            <p>Стратегии, которые вы настроили, появятся здесь.</p>
-        </section>
-    </main>
+        <!-- Основное содержимое -->
+        <main class="main-content">
+            <section id="info" class="content-section active">
+                <h2>Основная информация</h2>
+                <p>Это ваш личный кабинет. Здесь вы можете управлять вашими стратегиями и настройками.</p>
+                <form action="/start_bot" method="post">
+                    <button type="submit">Запустить бота</button>
+                </form>
+                <form action="/stop_bot" method="post">
+                    <button type="submit">Остановить бота</button>
+                </form>
+                <a href="/user_{{ user_id }}/dashboard">Перейти в личный кабинет</a>
+            </section>
+
+            <section id="catalog" class="content-section">
+                <h2>Каталог</h2>
+                <p>Скоро тут что-то будет.</p>
+            </section>
+
+            <section id="api" class="content-section">
+                <button class="add-api-button" onclick="openModal()">Добавить API ключ</button>
+            
+                <!-- Модальное окно для добавления API ключа -->
+                <div id="apiModal" class="modal">
+                    <div class="modal-content">
+                        <span class="close" onclick="closeModal()">&times;</span>
+                        <h3>Добавить API ключ</h3>
+                        
+                        <!-- Выбор биржи -->
+                        <label for="exchange-select">Выберите биржу:</label>
+                        <select id="exchange-select" onchange="showApiFields()">
+                            <option value="" disabled selected>Выберите биржу</option>
+                            <option value="binance_spot">Binance Spot</option>
+                            <option value="binance_future">Binance Future</option>
+                            <option value="bybit_spot">Bybit Spot</option>
+                            <option value="bybit_future">Bybit Future</option>
+                            <option value="okx_spot">OKX Spot</option>
+                            <option value="okx_future">OKX Future</option>
+                        </select>
+            
+                        <!-- Поля для API ключей (скрыты по умолчанию) -->
+                        <div id="api-fields" style="display: none;">
+                            <label for="api-key">API ключ:</label>
+                            <input type="text" id="api-key" placeholder="Введите ваш API ключ">
+            
+                            <label for="secret-key">Секретный ключ:</label>
+                            <input type="text" id="secret-key" placeholder="Введите ваш секретный ключ">
+            
+                            <button class="save-api-button" onclick="saveApiKey()">Сохранить</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
 
     <footer>
         <p>© 2024 Крипто Торговая Платформа</p>
     </footer>
+
+    <script>
+        function showSection(sectionId) {
+            // Скрываем все секции
+            document.querySelectorAll('.content-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            // Показываем выбранную секцию
+            document.getElementById(sectionId).classList.add('active');
+        }
+
+        function openModal() {
+            document.getElementById("apiModal").style.display = "block";
+        }
+        
+        function closeModal() {
+            document.getElementById("apiModal").style.display = "none";
+        }
+        
+        function showApiFields() {
+            // Показать поля API и секретного ключа после выбора биржи
+            document.getElementById("api-fields").style.display = "block";
+        }
+        
+        function saveApiKey() {
+            // Получить выбранную биржу и введенные ключи
+            const exchange = document.getElementById("exchange-select").value;
+            const apiKey = document.getElementById("api-key").value;
+            const secretKey = document.getElementById("secret-key").value;
+        
+            // Проверка на заполненность полей
+            if (!exchange || !apiKey || !secretKey) {
+                alert("Пожалуйста, заполните все поля.");
+                return;
+            }
+        
+            // Здесь будет логика для сохранения ключей (пока заглушка)
+            alert(`Биржа: ${exchange}\nAPI ключ: ${apiKey}\nСекретный ключ: ${secretKey}`);
+            
+            // Закрыть модальное окно после сохранения
+            closeModal();
+        }
+        
+        // Закрытие модального окна при нажатии на затемненный фон
+        window.onclick = function(event) {
+            const modal = document.getElementById("apiModal");
+            if (event.target == modal) {
+                closeModal();
+            }
+        }
+        
+    </script>
 </body>
 </html>

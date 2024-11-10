@@ -22,7 +22,7 @@ from fastapi.responses import Response
 
 
 
-REFRESH_TOKEN_EXPIRE_DAYS = 7
+REFRESH_TOKEN_EXPIRE_DAYS = 1
 
 auth_routes = APIRouter()
 templates = Jinja2Templates(directory="templates")
@@ -228,69 +228,3 @@ async def account_page(request: Request, current_user: User = Depends(get_curren
     "user_id": current_user.id
 })
 
-
-
-# @auth_routes.get("/dashboard/user_{user_id:int}")
-# async def user_dashboard(user_id: int, request: Request, current_user: User = Depends(get_current_user)):
-#     # Проверка токена и прав доступа
-#     if current_user.id != user_id:
-#         raise HTTPException(status_code=403, detail="Доступ запрещен")
-
-#     # Получение информации о контейнере пользователя
-#     try:
-#         container = await Containers.filter(user_id=user_id).first()
-
-#         if not container:
-#             raise HTTPException(status_code=404, detail="Контейнер не найден")
-
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=f"Ошибка сервера: {str(e)}")
-
-#     # Перенаправление на Freqtrade UI через локальный порт
-#     public_url = f"http://hse-monopoly.online/dashboard/user_{user_id}"   # URL для пользователя
-#     internal_url = f"http://127.0.0.1:{container.port}"  # Внутренний URL на локальный порт Freqtrade
-
-#     return {"public_url": public_url, "internal_url": internal_url}
-
-# @auth_routes.get("/dashboard/user_{user_id:int}", response_class=HTMLResponse)
-# async def user_dashboard(user_id: int, request: Request, current_user: User = Depends(get_current_user)):
-#     # Проверка токена и прав доступа
-#     if current_user.id != user_id:
-#         raise HTTPException(status_code=403, detail="Доступ запрещен")
-
-#     # Получение информации о контейнере пользователя
-#     try:
-#         container = await Containers.filter(user_id=user_id).first()
-#         if not container:
-#             raise HTTPException(status_code=404, detail="Контейнер не найден")
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=f"Ошибка сервера: {str(e)}")
-
-#     # Возвращаем HTML с JavaScript для перенаправления на порт пользователя
-#     return f"""
-#     <html>
-#         <head>
-#             <meta http-equiv="refresh" content="0; url=http://194.87.84.104:{container.port}/" />
-#         </head>
-#         <body>
-#             <p>Redirecting to Freqtrade UI...</p>
-#         </body>
-#     </html>
-#     """
-
-# routes.py
-
-@auth_routes.get("/authenticate")
-async def authenticate(request: Request, current_user: User = Depends(get_current_user)):
-    original_uri = request.headers.get('X-Original-URI')
-    if not original_uri:
-        return Response(status_code=403)
-
-    import re
-    match = re.match(r'/user_(\d+)/', original_uri)
-    if not match:
-        return Response(status_code=403)
-    user_id = int(match.group(1))
-    if current_user.id != user_id:
-        return Response(status_code=403)
-    return Response(status_code=200)

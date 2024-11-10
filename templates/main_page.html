@@ -4,18 +4,51 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Главная страничка</title>
-    <link rel="stylesheet" href="/static/main_page.css"> <!-- Подключаем внешний CSS файл -->
+    <link rel="stylesheet" href="/static/main_page.css">
 </head>
 <body>
-    <div class="content">
-        <h1>Добро пожаловать в будущее торговли</h1>
-        <p>Создайте своего уникального торгового бота или выберите готовое решение, которое изменит ваше финансовое будущее. Быстро. Легко. Умно.</p>
+    <header>
         {% if is_authenticated %}
             <button class="account-button" onclick="window.location.href='/account'">Личный кабинет</button>
         {% else %}
             <button class="login-button" onclick="window.location.href='/login'">Войти</button>
             <button class="register-button" onclick="window.location.href='/register'">Зарегистрироваться</button>
         {% endif %}
+    </header>
+
+    <div class="content">
+        <section class="hero">
+            <h1>Добро пожаловать в будущее торговли</h1>
+            <p>Создайте своего уникального торгового бота или выберите готовое решение, которое изменит ваше финансовое будущее. Быстро. Легко. Умно.</p>
+            <a href="#products" class="scroll-down">Узнать больше</a>
+        </section>
+
+        <section id="products" class="products">
+            <h2>Наши продукты</h2>
+            <div class="card-container">
+                <div class="card" onclick="window.location.href='/products/ready-strategies'">
+                    <h3>Готовые стратегии</h3>
+                </div>
+                <div class="card" onclick="window.location.href='/products/strategy-constructor'">
+                    <h3>Конструктор стратегий</h3>
+                </div>
+                <div class="card" onclick="window.location.href='/products/custom-strategy'">
+                    <h3>Персональное создание стратегии</h3>
+                </div>
+            </div>
+        </section>
     </div>
+
+    <footer>
+        <!-- Ваш футер -->
+    </footer>
+
+    <!-- Плавный скроллинг -->
+    <script>
+        document.querySelector('.scroll-down').addEventListener('click', function(e) {
+            e.preventDefault();
+            document.querySelector('#products').scrollIntoView({ behavior: 'smooth' });
+        });
+    </script>
 </body>
 </html>

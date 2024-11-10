@@ -28,4 +28,16 @@ class Containers(Model):
 
     class Meta:
         table = "containers"
+        
+class ApiKey(Model):
+    id = fields.IntField(pk=True)
+    user = fields.ForeignKeyField("models.User", related_name="api_keys", on_delete=fields.CASCADE)
+    exchange = fields.CharField(max_length=50)
+    api_key = fields.TextField()
+    secret_key = fields.TextField()
+    created_at = fields.DatetimeField(auto_now_add=True)
+    updated_at = fields.DatetimeField(auto_now=True)
+
+    class Meta:
+        table = "api_keys"
 
