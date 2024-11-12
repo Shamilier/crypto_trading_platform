@@ -1,5 +1,7 @@
 from tortoise import fields
 from tortoise.models import Model
+from tortoise.contrib.pydantic import pydantic_model_creator
+
 
 class User(Model):
     id = fields.IntField(pk=True)
@@ -41,3 +43,6 @@ class ApiKey(Model):
     class Meta:
         table = "api_keys"
 
+# Pydantic-схемы для ApiKey
+ApiKey_Pydantic = pydantic_model_creator(ApiKey, name="ApiKey")
+ApiKeyIn_Pydantic = pydantic_model_creator(ApiKey, name="ApiKeyIn", exclude_readonly=True)

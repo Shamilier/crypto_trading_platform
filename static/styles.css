@@ -246,3 +246,31 @@ footer {
     background-color: #005bb5;
 }
 
+/* Уведомление об успешном сохранении */
+.success-message {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 10px 20px;
+    background-color: #4CAF50; /* Зеленый цвет для успеха */
+    color: white;
+    border-radius: 5px;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 1000;
+    font-size: 16px;
+}
+
+.success-message.visible {
+    opacity: 1;
+}
+.api-key-item {
+    border: 1px solid #ddd;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+}
+.api-key-item p {
+    margin: 5px 0;
+}

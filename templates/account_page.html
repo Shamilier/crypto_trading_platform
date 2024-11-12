@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Личный кабинет</title>
     <link rel="stylesheet" href="/static/styles.css">
+    <script src="/static/api_keys.js"></script>
 </head>
 <body>
     <header>
@@ -23,6 +24,7 @@
 
         <!-- Основное содержимое -->
         <main class="main-content">
+            <!-- Секция Основная информация -->
             <section id="info" class="content-section active">
                 <h2>Основная информация</h2>
                 <p>Это ваш личный кабинет. Здесь вы можете управлять вашими стратегиями и настройками.</p>
@@ -35,16 +37,26 @@
                 <a href="/user_{{ user_id }}/dashboard">Перейти в личный кабинет</a>
             </section>
 
+            <!-- Секция Каталог -->
             <section id="catalog" class="content-section">
                 <h2>Каталог</h2>
                 <p>Скоро тут что-то будет.</p>
             </section>
 
+            <!-- Секция API ключи -->
             <section id="api" class="content-section">
+                <h2>Ваши API ключи</h2>
+
+                <!-- Контейнер для списка API ключей -->
+                <div id="apiKeyContainer">
+                    <p>Здесь будут отображаться ваши API ключи.</p>
+                </div>
+                
+                <!-- Кнопка для добавления нового ключа -->
                 <button class="add-api-button" onclick="openModal()">Добавить API ключ</button>
             
                 <!-- Модальное окно для добавления API ключа -->
-                <div id="apiModal" class="modal">
+                <div id="apiModal" class="modal" style="display: none;">
                     <div class="modal-content">
                         <span class="close" onclick="closeModal()">&times;</span>
                         <h3>Добавить API ключ</h3>
@@ -60,15 +72,15 @@
                             <option value="okx_spot">OKX Spot</option>
                             <option value="okx_future">OKX Future</option>
                         </select>
-            
+
                         <!-- Поля для API ключей (скрыты по умолчанию) -->
                         <div id="api-fields" style="display: none;">
                             <label for="api-key">API ключ:</label>
                             <input type="text" id="api-key" placeholder="Введите ваш API ключ">
-            
+
                             <label for="secret-key">Секретный ключ:</label>
                             <input type="text" id="secret-key" placeholder="Введите ваш секретный ключ">
-            
+
                             <button class="save-api-button" onclick="saveApiKey()">Сохранить</button>
                         </div>
                     </div>
@@ -86,51 +98,25 @@
             // Скрываем все секции
             document.querySelectorAll('.content-section').forEach(section => {
                 section.classList.remove('active');
+                section.style.display = 'none'; // Скрываем каждую секцию
             });
             // Показываем выбранную секцию
-            document.getElementById(sectionId).classList.add('active');
+            const section = document.getElementById(sectionId);
+            section.classList.add('active');
+            section.style.display = 'block'; // Показываем выбранную секцию
         }
 
         function openModal() {
             document.getElementById("apiModal").style.display = "block";
         }
-        
+
         function closeModal() {
             document.getElementById("apiModal").style.display = "none";
         }
-        
+
         function showApiFields() {
-            // Показать поля API и секретного ключа после выбора биржи
             document.getElementById("api-fields").style.display = "block";
         }
-        
-        function saveApiKey() {
-            // Получить выбранную биржу и введенные ключи
-            const exchange = document.getElementById("exchange-select").value;
-            const apiKey = document.getElementById("api-key").value;
-            const secretKey = document.getElementById("secret-key").value;
-        
-            // Проверка на заполненность полей
-            if (!exchange || !apiKey || !secretKey) {
-                alert("Пожалуйста, заполните все поля.");
-                return;
-            }
-        
-            // Здесь будет логика для сохранения ключей (пока заглушка)
-            alert(`Биржа: ${exchange}\nAPI ключ: ${apiKey}\nСекретный ключ: ${secretKey}`);
-            
-            // Закрыть модальное окно после сохранения
-            closeModal();
-        }
-        
-        // Закрытие модального окна при нажатии на затемненный фон
-        window.onclick = function(event) {
-            const modal = document.getElementById("apiModal");
-            if (event.target == modal) {
-                closeModal();
-            }
-        }
-        
     </script>
 </body>
 </html>

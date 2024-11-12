@@ -12,5 +12,6 @@ celery
 docker
 redis
 cryptography
-
+ccxt
+python-dotenv
 

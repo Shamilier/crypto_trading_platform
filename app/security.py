@@ -3,8 +3,13 @@
 import jwt
 from datetime import datetime, timedelta
 from fastapi import HTTPException
+import os
+from cryptography.fernet import Fernet
+from dotenv import load_dotenv
 
-SECRET_KEY = "shamil_max"
+load_dotenv()
+SECRET_KEY = os.getenv("SECRET_KEY").encode()
+
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 1
 
@@ -23,3 +28,15 @@ def verify_token(token: str):
         raise HTTPException(status_code=401, detail="Token has expired")
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid token")
+    
+    
+    
+
+ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY").encode()
+fernet = Fernet(ENCRYPTION_KEY)
+
+def encrypt_data(data: str) -> str:
+    return fernet.encrypt(data.encode()).decode()
+
+def decrypt_data(encrypted_data: str) -> str:
+    return fernet.decrypt(encrypted_data.encode()).decode()
