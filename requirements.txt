@@ -14,4 +14,4 @@ redis
 cryptography
 ccxt
 python-dotenv
-
+asgiref

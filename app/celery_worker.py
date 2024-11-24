@@ -90,7 +90,7 @@ async def _create_freqtrade_container(user_id):
             next_port = await get_next_available_port()
 
             try:
-                # Создаем контейнер
+                # Создаем контейнер но не запускаем
                 container = client.containers.create(
                     "freqtradeorg/freqtrade:stable",
                     name=container_name,
@@ -107,7 +107,7 @@ async def _create_freqtrade_container(user_id):
 
 
                 # Стартуем контейнер
-                container.start()
+                # container.start()
 
                 # Копируем данные пользователя в контейнер
                 copy_to_container(container, user_data_host_path, '/freqtrade/user_data')
@@ -117,7 +117,7 @@ async def _create_freqtrade_container(user_id):
                     user_id=user_id,
                     container_id=container.id,
                     port=next_port,
-                    status="running"
+                    status="created"
                 )
 
                 return f"Container {container_name} created on port {next_port} and user data copied."
@@ -129,3 +129,83 @@ async def _create_freqtrade_container(user_id):
                 return f"Error occurred: {str(e)}"
     finally:
         await close_db()
+
+@celery.task
+def add_strategy_to_container(user_id, strategy_name):
+    """Добавляет стратегию в контейнер пользователя"""
+    try:
+        # Создаём новый событийный цикл в отдельном потоке
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        result = loop.run_until_complete(_add_strategy_to_container(user_id, strategy_name))
+        return result
+    finally:
+        # Закрываем цикл после завершения
+        loop.close()
+
+
+async def _add_strategy_to_container(user_id, strategy_name):
+    """Асинхронная функция для добавления стратегии"""
+    await init_db()
+    try:
+        # Основная логика добавления стратегии
+        user_path = os.path.abspath(f"./user_data/user_{user_id}")
+        user_strategies_path = os.path.join(user_path, "strategies")
+        json_file_path = os.path.abspath(f"./user_data/example/{strategy_name}.json")
+        py_file_path = os.path.abspath(f"./user_data/example/strategies/{strategy_name}.py")
+
+        # Проверяем наличие файлов стратегии
+        if not os.path.exists(json_file_path) or not os.path.exists(py_file_path):
+            return f"Error: Strategy files for {strategy_name} not found."
+
+        # Создаём необходимые папки
+        os.makedirs(user_path, exist_ok=True)
+        os.makedirs(user_strategies_path, exist_ok=True)
+
+        # Копируем файлы
+        user_json_file_path = os.path.join(user_path, f"{strategy_name}.json")
+        user_py_file_path = os.path.join(user_strategies_path, f"{strategy_name}.py")
+
+        with open(json_file_path, 'rb') as src_file:
+            with open(user_json_file_path, 'wb') as dest_file:
+                dest_file.write(src_file.read())
+
+        with open(py_file_path, 'rb') as src_file:
+            with open(user_py_file_path, 'wb') as dest_file:
+                dest_file.write(src_file.read())
+
+        # Монтируем файлы в контейнер
+        container_info = await Containers.filter(user_id=user_id).first()
+        if not container_info:
+            return f"Error: Container for user {user_id} not found."
+
+        container_name = container_info.container_id
+        container = client.containers.get(container_name)
+
+        # Монтируем JSON файл
+        with open(user_json_file_path, "rb") as json_file:
+            json_tar = create_tar_archive_from_file({"config.json": json_file.read()})
+            container.put_archive("/freqtrade/user_data", json_tar)
+
+        # Монтируем Python файл
+        with open(user_py_file_path, "rb") as py_file:
+            py_tar = create_tar_archive_from_file({f"{strategy_name}.py": py_file.read()})
+            container.put_archive("/freqtrade/user_data/strategies", py_tar)
+
+        return f"Strategy {strategy_name} successfully added to container {container_name}."
+    except Exception as e:
+        return f"Error occurred: {str(e)}"
+    finally:
+        await close_db()
+
+
+def create_tar_archive_from_file(files: dict) -> BytesIO:
+    """Создает tar-архив из переданных файлов"""
+    tar_stream = BytesIO()
+    with tarfile.open(fileobj=tar_stream, mode='w') as tar:
+        for file_name, file_data in files.items():
+            tarinfo = tarfile.TarInfo(name=file_name)
+            tarinfo.size = len(file_data)
+            tar.addfile(tarinfo, BytesIO(file_data))
+    tar_stream.seek(0)
+    return tar_stream

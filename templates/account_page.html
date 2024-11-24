@@ -35,7 +35,15 @@
                     <button type="submit">Остановить бота</button>
                 </form>
                 <a href="/user_{{ user_id }}/dashboard">Перейти в личный кабинет</a>
+            
+                <!-- Контейнер для баланса -->
+                <div id="balance-container">
+                    <span id="balance-text">Загрузка баланса...</span>
+                    <button id="refresh-balance-button" onclick="fetchBalance()">Обновить баланс</button>
+                </div>
+                
             </section>
+            
 
             <!-- Секция Каталог -->
             <section id="catalog" class="content-section">
@@ -92,31 +100,5 @@
     <footer>
         <p>© 2024 Крипто Торговая Платформа</p>
     </footer>
-
-    <script>
-        function showSection(sectionId) {
-            // Скрываем все секции
-            document.querySelectorAll('.content-section').forEach(section => {
-                section.classList.remove('active');
-                section.style.display = 'none'; // Скрываем каждую секцию
-            });
-            // Показываем выбранную секцию
-            const section = document.getElementById(sectionId);
-            section.classList.add('active');
-            section.style.display = 'block'; // Показываем выбранную секцию
-        }
-
-        function openModal() {
-            document.getElementById("apiModal").style.display = "block";
-        }
-
-        function closeModal() {
-            document.getElementById("apiModal").style.display = "none";
-        }
-
-        function showApiFields() {
-            document.getElementById("api-fields").style.display = "block";
-        }
-    </script>
 </body>
 </html>

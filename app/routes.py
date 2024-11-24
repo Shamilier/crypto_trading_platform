@@ -15,7 +15,7 @@ import secrets
 from app.security import *
 from app.dependencies import get_current_user
 from tortoise.exceptions import IntegrityError, DoesNotExist
-from app.celery_worker import create_freqtrade_container
+from app.celery_worker import create_freqtrade_container, add_strategy_to_container
 from cryptography.fernet import Fernet
 print(Fernet.generate_key().decode())
 
@@ -208,6 +208,8 @@ async def account_page(request: Request, current_user: User = Depends(get_curren
 # Add API Key to Database
 @auth_routes.post("/api-keys", response_model=ApiKey_Pydantic)
 async def create_api_key(api_key_data: ApiKeyIn_Pydantic, user: User = Depends(get_current_user)):
+    print("Маршрут /api-keys вызван")  # Добавляем лог
+    print("Данные:", api_key_data)
     try:
         # Проверка валидности токенов
         print(api_key_data.exchange.split('_')[0])
@@ -235,6 +237,7 @@ async def create_api_key(api_key_data: ApiKeyIn_Pydantic, user: User = Depends(g
     
 @auth_routes.get("/api-keys", response_model=List[ApiKey_Pydantic])
 async def get_api_keys(user: User = Depends(get_current_user)):
+    print("-_-_-_-")
     user_api_keys = ApiKey.filter(user=user)
     if not user_api_keys:
         print("Нет API ключей для пользователя")
@@ -243,5 +246,81 @@ async def get_api_keys(user: User = Depends(get_current_user)):
     return await ApiKey_Pydantic.from_queryset(user_api_keys)
 
 
+
+@auth_routes.delete("/api-keys/{api_key_id}")
+async def delete_api_key(api_key_id: int, user: User = Depends(get_current_user)):
+    """Удаляет API ключ пользователя"""
+    try:
+        # Проверяем, существует ли ключ и принадлежит ли он текущему пользователю
+        api_key = await ApiKey.get_or_none(id=api_key_id, user=user)
+        if not api_key:
+            raise HTTPException(status_code=404, detail="API ключ не найден или вы не являетесь владельцем")
+
+        # Удаляем ключ из базы данных
+        await api_key.delete()
+
+        return {"message": "API ключ успешно удалён"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка при удалении API ключа: {str(e)}")
+
+
+
+
 # bDUy4wOelVKWS53ico
 # Gj7v51T7JyVzH2nX2CjIgkPWp3nhkVn6Aa1h
+
+
+@auth_routes.get("/get-balance")
+async def get_balance(user: User = Depends(get_current_user)):
+    # Получаем API ключи пользователя
+    api_keys = await ApiKey.filter(user=user).first()
+    # print(api_keys)
+    if not api_keys:
+        return {"error": "API ключи не найдены"}
+    
+    # Проверяем баланс
+    try:
+        exchange_class = getattr(ccxt, api_keys.exchange.split('_')[0].lower())
+        exchange = exchange_class({
+            'apiKey': decrypt_data(api_keys.api_key),
+            'secret': decrypt_data(api_keys.secret_key),
+            'enableRateLimit': True,
+        })
+        balance = exchange.fetch_balance()
+        print(type(balance))
+
+        # Извлекаем `totalWalletBalance`
+        total_wallet_balance = balance['info']['result']['list'][0]['totalWalletBalance']
+        print(total_wallet_balance)
+
+        return {"totalWalletBalance": total_wallet_balance}
+    except KeyError:
+        return {"error": "Не удалось извлечь totalWalletBalance из ответа биржи"}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+
+# ДЛЯ КАТАЛОГА:
+@auth_routes.get("/strategies", response_class=HTMLResponse)
+async def get_strategies(request: Request):
+    strategies_path = os.path.abspath("./user_data/example/strategies")
+    # Получаем список только `.py` файлов
+    strategies = [
+        os.path.splitext(name)[0]  # Убираем расширение `.py`
+        for name in os.listdir(strategies_path)
+        if name.endswith(".py")
+    ]
+
+    return templates.TemplateResponse("strategies.html", {
+        "request": request,
+        "strategies": strategies
+    })
+
+@auth_routes.post("/add_strategy")
+async def add_strategy(strategy_name: str = Form(...), user: User = Depends(get_current_user)):
+    # Передаём ID пользователя и название стратегии в Celery задачу
+    result = await add_strategy_to_container(user.id, strategy_name)
+    if "Error" in result:
+        raise HTTPException(status_code=400, detail=result)
+    return RedirectResponse(url="/strategies", status_code=302)
