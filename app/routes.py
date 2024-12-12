@@ -38,7 +38,7 @@ def generate_csrf_token():
 
 def create_user_directory(user_id):
     user_directory = f"./user_data/user_{user_id}"
-    example_directory = "./user_data/example"
+    example_directory = "./user_data/init"
     
     if not os.path.exists(user_directory):
         os.makedirs(user_directory)
@@ -68,6 +68,8 @@ async def validate_api_key(exchange_name: str, api_key: str, secret_key: str):
     except Exception as e:
         print("Неизвестная ошибка при проверке токенов:", e)
         raise HTTPException(status_code=500, detail="Ошибка при проверке токенов")
+
+
 # ------ Routes ------
 
 # Register Page
@@ -237,7 +239,7 @@ async def create_api_key(api_key_data: ApiKeyIn_Pydantic, user: User = Depends(g
     
 @auth_routes.get("/api-keys", response_model=List[ApiKey_Pydantic])
 async def get_api_keys(user: User = Depends(get_current_user)):
-    print("-_-_-_-")
+    # print("-_-_-_-")
     user_api_keys = ApiKey.filter(user=user)
     if not user_api_keys:
         print("Нет API ключей для пользователя")
@@ -266,8 +268,6 @@ async def delete_api_key(api_key_id: int, user: User = Depends(get_current_user)
 
 
 
-# bDUy4wOelVKWS53ico
-# Gj7v51T7JyVzH2nX2CjIgkPWp3nhkVn6Aa1h
 
 
 @auth_routes.get("/get-balance")
@@ -287,7 +287,7 @@ async def get_balance(user: User = Depends(get_current_user)):
             'enableRateLimit': True,
         })
         balance = exchange.fetch_balance()
-        print(type(balance))
+        # print(type(balance))
 
         # Извлекаем `totalWalletBalance`
         total_wallet_balance = balance['info']['result']['list'][0]['totalWalletBalance']
@@ -320,7 +320,8 @@ async def get_strategies(request: Request):
 @auth_routes.post("/add_strategy")
 async def add_strategy(strategy_name: str = Form(...), user: User = Depends(get_current_user)):
     # Передаём ID пользователя и название стратегии в Celery задачу
-    result = await add_strategy_to_container(user.id, strategy_name)
-    if "Error" in result:
-        raise HTTPException(status_code=400, detail=result)
-    return RedirectResponse(url="/strategies", status_code=302)
+    result = add_strategy_to_container.delay(user.id, strategy_name)
+    # result = add_strategy_to_container(user.id, strategy_name)
+    # if "Error" in result:
+    #     raise HTTPException(status_code=400, detail=result)
+    # return RedirectResponse(url="/strategies", status_code=302)

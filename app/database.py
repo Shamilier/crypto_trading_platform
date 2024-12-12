@@ -21,3 +21,4 @@ async def init():
 
 async def close():
     await Tortoise.close_connections()
+

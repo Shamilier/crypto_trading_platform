@@ -46,3 +46,23 @@ class ApiKey(Model):
 # Pydantic-схемы для ApiKey
 ApiKey_Pydantic = pydantic_model_creator(ApiKey, name="ApiKey")
 ApiKeyIn_Pydantic = pydantic_model_creator(ApiKey, name="ApiKeyIn", exclude_readonly=True)
+
+
+class Bot(Model):
+    id = fields.IntField(pk=True)  # Уникальный идентификатор бота
+    user = fields.ForeignKeyField("models.User", related_name="bots", on_delete=fields.CASCADE)  # Ссылка на пользователя
+    name = fields.CharField(max_length=255)  # Название бота
+    strategy = fields.CharField(max_length=255)  # Стратегия, используемая ботом
+    status = fields.CharField(max_length=50, default="inactive")  # Статус бота (активен/неактивен и т.д.)
+    balance_used = fields.FloatField(default=0.0)  # Используемый баланс (по дефолту 0)
+    indicators = fields.JSONField(default=list)  # Индикаторы (по дефолту пустой список)
+    profit = fields.FloatField(default=0.0)  # Прибыль (по дефолту 0)
+    created_at = fields.DatetimeField(auto_now_add=True)  # Дата и время создания
+    updated_at = fields.DatetimeField(auto_now=True)  # Дата и время последнего обновления
+
+    class Meta:
+        table = "bots"
+
+# Pydantic-схемы для Bot
+Bot_Pydantic = pydantic_model_creator(Bot, name="Bot")
+BotIn_Pydantic = pydantic_model_creator(Bot, name="BotIn", exclude_readonly=True)

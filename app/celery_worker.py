@@ -40,6 +40,7 @@ def create_tar_archive(source_dir):
     tar_stream.seek(0)
     return tar_stream
 
+
 # Функция для копирования архива в контейнер
 def copy_to_container(container, source_path, target_path):
     tar_archive = create_tar_archive(source_path)
@@ -99,7 +100,7 @@ async def _create_freqtrade_container(user_id):
                     command=[
                         "trade",
                         "-c",
-                        "/freqtrade/user_data/config.json",
+                        "/freqtrade/user_data/f_scalp.json",
                         "--strategy",
                         "ScalpFutures"
                     ]
@@ -130,18 +131,22 @@ async def _create_freqtrade_container(user_id):
     finally:
         await close_db()
 
+
+
+
 @celery.task
 def add_strategy_to_container(user_id, strategy_name):
     """Добавляет стратегию в контейнер пользователя"""
-    try:
-        # Создаём новый событийный цикл в отдельном потоке
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        result = loop.run_until_complete(_add_strategy_to_container(user_id, strategy_name))
-        return result
-    finally:
-        # Закрываем цикл после завершения
-        loop.close()
+    # try:
+    #     # Создаём новый событийный цикл в отдельном потоке
+    #     loop = asyncio.new_event_loop()
+    #     asyncio.set_event_loop(loop)
+    #     result = loop.run_until_complete(_add_strategy_to_container(user_id, strategy_name))
+    #     return result
+    # finally:
+    #     # Закрываем цикл после завершения
+    #     loop.close()
+    return run_sync(_add_strategy_to_container(user_id, strategy_name))
 
 
 async def _add_strategy_to_container(user_id, strategy_name):
@@ -184,13 +189,13 @@ async def _add_strategy_to_container(user_id, strategy_name):
 
         # Монтируем JSON файл
         with open(user_json_file_path, "rb") as json_file:
-            json_tar = create_tar_archive_from_file({"config.json": json_file.read()})
+            json_tar = create_tar_archive_from_file({f"{strategy_name}.json": json_file.read()})
             container.put_archive("/freqtrade/user_data", json_tar)
 
         # Монтируем Python файл
         with open(user_py_file_path, "rb") as py_file:
             py_tar = create_tar_archive_from_file({f"{strategy_name}.py": py_file.read()})
-            container.put_archive("/freqtrade/user_data/strategies", py_tar)
+            container.put_archive("/freqtrade/user_data/strategies/", py_tar)
 
         return f"Strategy {strategy_name} successfully added to container {container_name}."
     except Exception as e:
