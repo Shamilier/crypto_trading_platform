@@ -55,7 +55,7 @@ class Bot(Model):
     strategy = fields.CharField(max_length=255)  # Стратегия, используемая ботом
     status = fields.CharField(max_length=50, default="inactive")  # Статус бота (активен/неактивен и т.д.)
     balance_used = fields.FloatField(default=0.0)  # Используемый баланс (по дефолту 0)
-    indicators = fields.JSONField(default=list)  # Индикаторы (по дефолту пустой список)
+    indicators = fields.JSONField(default=[])  # Индикаторы (по дефолту пустой список)
     profit = fields.FloatField(default=0.0)  # Прибыль (по дефолту 0)
     created_at = fields.DatetimeField(auto_now_add=True)  # Дата и время создания
     updated_at = fields.DatetimeField(auto_now=True)  # Дата и время последнего обновления

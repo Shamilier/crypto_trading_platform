@@ -188,3 +188,81 @@ async function deleteApiKey(apiKeyId) {
         alert("Произошла ошибка при удалении API ключа. Попробуйте снова.");
     }
 }
+
+
+// Загрузка списка ботов пользователя
+async function loadUserBots() {
+    try {
+        const response = await fetch("/user-bots");
+        const text = await response.text(); // Получаем текст ответа
+        console.log("Ответ сервера:", text);
+
+        const bots = JSON.parse(text); // Парсим JSON, если это возможно
+        console.log("Данные ботов:", bots);
+
+        const botList = document.getElementById("bot-list");
+        botList.innerHTML = ""; // Очистка списка
+
+        bots.forEach(bot => {
+            const listItem = document.createElement("li");
+            listItem.innerHTML = `
+                <h4>${bot.name}</h4>
+                <p>Стратегия: ${bot.strategy}</p>
+                <p>Статус: ${bot.status}</p>
+                <div class="bot-controls">
+                    <button onclick="startBot(${bot.id}, '${bot.name}', '${bot.strategy}')">Запустить</button>
+                    <button onclick="stopBot(${bot.id})">Остановить</button>
+                    <button onclick="showBotInfo(${bot.id})">Информация</button>
+                    <button onclick="editBotConfig(${bot.id})">Изменить конфигурацию</button>
+                </div>
+            `;
+            botList.appendChild(listItem);
+        });
+    } catch (error) {
+        console.error("Ошибка при загрузке ботов:", error);
+    }
+}
+
+
+// Функции для управления ботами
+async function startBot(botId, botName, strategyName) {
+    try {
+        const response = await fetch(`/start-bot/${botName}/${strategyName}`, {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${localStorage.getItem("access_token")}`
+            }
+        });
+
+        const result = await response.json();
+        alert(result.message);
+        loadUserBots(); // Обновляем список ботов
+    } catch (error) {
+        console.error("Ошибка при запуске бота:", error);
+    }
+}
+
+
+
+async function stopBot(botId) {
+    try {
+        await fetch(`/stop-bot/${botId}`, { method: "POST" });
+        alert("Бот остановлен!");
+        loadUserBots(); // Обновление списка
+    } catch (error) {
+        console.error("Ошибка при остановке бота:", error);
+    }
+}
+
+async function showBotInfo(botId) {
+    alert(`Информация о боте с ID: ${botId}`);
+    // Здесь можно добавить отображение полной информации о боте
+}
+
+async function editBotConfig(botId) {
+    alert(`Изменение конфигурации бота с ID: ${botId}`);
+    // Здесь можно реализовать функциональность редактирования конфигурации
+}
+
+// Загружаем список ботов при загрузке страницы
+document.addEventListener("DOMContentLoaded", loadUserBots);

@@ -28,21 +28,22 @@
             <section id="info" class="content-section active">
                 <h2>Основная информация</h2>
                 <p>Это ваш личный кабинет. Здесь вы можете управлять вашими стратегиями и настройками.</p>
-                <form action="/start_bot" method="post">
-                    <button type="submit">Запустить бота</button>
-                </form>
-                <form action="/stop_bot" method="post">
-                    <button type="submit">Остановить бота</button>
-                </form>
-                <a href="/user_{{ user_id }}/dashboard">Перейти в личный кабинет</a>
+            
+                <!-- Контейнер для списка ботов -->
+                <div id="bots-container">
+                    <h3>Ваши боты</h3>
+                    <ul id="bot-list">
+                        <!-- Боты будут загружены сюда -->
+                    </ul>
+                </div>
             
                 <!-- Контейнер для баланса -->
                 <div id="balance-container">
                     <span id="balance-text">Загрузка баланса...</span>
                     <button id="refresh-balance-button" onclick="fetchBalance()">Обновить баланс</button>
                 </div>
-                
             </section>
+            
             
 
             <!-- Секция Каталог -->

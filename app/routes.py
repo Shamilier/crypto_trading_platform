@@ -6,7 +6,8 @@ from fastapi import HTTPException
 from fastapi import APIRouter, Request, Form, Depends, HTTPException, status
 from tortoise.transactions import in_transaction
 from passlib.hash import bcrypt
-from app.models import User, RefreshToken, ApiKey, ApiKeyIn_Pydantic, ApiKey_Pydantic, Containers
+from app.models import User, RefreshToken, ApiKey, ApiKeyIn_Pydantic, ApiKey_Pydantic, Containers, Bot_Pydantic, Bot
+
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, RedirectResponse
 from app.security import create_access_token, verify_token
@@ -15,9 +16,13 @@ import secrets
 from app.security import *
 from app.dependencies import get_current_user
 from tortoise.exceptions import IntegrityError, DoesNotExist
-from app.celery_worker import create_freqtrade_container, add_strategy_to_container
+from app.celery_worker import create_freqtrade_container, add_strategy_to_container, start_user_strategy
 from cryptography.fernet import Fernet
 print(Fernet.generate_key().decode())
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
+
 
 
 REFRESH_TOKEN_EXPIRE_DAYS = 1
@@ -206,6 +211,25 @@ async def account_page(request: Request, current_user: User = Depends(get_curren
         "user_id": current_user.id
     })
 
+@auth_routes.get("/user-bots", response_model=List[Bot_Pydantic])
+async def get_user_bots(user: User = Depends(get_current_user)):
+    try:
+        # Получаем QuerySet
+        bots = Bot.filter(user=user)
+        # Преобразуем QuerySet в Pydantic-модель
+        return await Bot_Pydantic.from_queryset(bots)
+    except Exception as e:
+        logging.error(f"Ошибка при получении ботов: {e}")
+        raise HTTPException(status_code=500, detail="Ошибка сервера")
+
+
+
+@auth_routes.post("/start-bot/{bot_name}/{strategy_name}")
+async def start_bot(bot_name: str, strategy_name: str, user: User = Depends(get_current_user)):
+    task = start_user_strategy.delay(user.id, bot_name, strategy_name)
+    return {"message": f"Task to start bot {bot_name} with strategy {strategy_name} created.", "task_id": task.id}
+
+
 
 # Add API Key to Database
 @auth_routes.post("/api-keys", response_model=ApiKey_Pydantic)
@@ -325,3 +349,9 @@ async def add_strategy(strategy_name: str = Form(...), user: User = Depends(get_
     # if "Error" in result:
     #     raise HTTPException(status_code=400, detail=result)
     # return RedirectResponse(url="/strategies", status_code=302)
+
+
+@auth_routes.get("/user-strategies", response_model=List[Bot_Pydantic])
+async def get_user_strategies(user: User = Depends(get_current_user)):
+    strategies = await Bot.filter(user=user)
+    return await Bot_Pydantic.from_queryset(strategies)

@@ -274,3 +274,36 @@ footer {
 .api-key-item p {
     margin: 5px 0;
 }
+
+
+#bots-container {
+    margin-top: 20px;
+}
+
+#bot-list {
+    list-style: none;
+    padding: 0;
+}
+
+#bot-list li {
+    background-color: #f4f4f4;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 10px;
+}
+
+.bot-controls button {
+    margin-right: 10px;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    background-color: #007bff;
+    color: white;
+    transition: background-color 0.3s ease;
+}
+
+.bot-controls button:hover {
+    background-color: #0056b3;
+}

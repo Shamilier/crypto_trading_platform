@@ -7,6 +7,8 @@ from tortoise.transactions import in_transaction
 from app.models import Containers  # Импорт модели Containers
 from tortoise import Tortoise
 import asyncio
+from app.models import Bot  # Импорт модели Bot
+
 
 celery = Celery(
     'crypto_trading_app',
@@ -197,7 +199,17 @@ async def _add_strategy_to_container(user_id, strategy_name):
             py_tar = create_tar_archive_from_file({f"{strategy_name}.py": py_file.read()})
             container.put_archive("/freqtrade/user_data/strategies/", py_tar)
 
-        return f"Strategy {strategy_name} successfully added to container {container_name}."
+        await Bot.create(
+            user_id=user_id,
+            name=strategy_name,  # Название совпадает с названием стратегии
+            strategy=strategy_name,  # Название стратегии
+            status="inactive",  # Статус: неактивен
+            balance_used=-1.0,  # Пока неизвестно, используем -1
+            indicators=["-"],  # Пока пустые индикаторы
+            profit=0.0,  # Начальная прибыль
+        )
+
+        return f"Strategy {strategy_name} successfully added to container {container_name} and database."
     except Exception as e:
         return f"Error occurred: {str(e)}"
     finally:
@@ -214,3 +226,53 @@ def create_tar_archive_from_file(files: dict) -> BytesIO:
             tar.addfile(tarinfo, BytesIO(file_data))
     tar_stream.seek(0)
     return tar_stream
+
+
+
+@celery.task
+def start_user_strategy(user_id, bot_name, strategy_name):
+    """Запускает стратегию как процесс в существующем контейнере."""
+    return run_sync(_start_user_strategy(user_id, bot_name, strategy_name))
+
+async def _start_user_strategy(user_id, bot_name, strategy_name):
+    await init_db()
+    try:
+        # Получаем контейнер пользователя
+        container_info = await Containers.filter(user_id=user_id).first()
+        if not container_info:
+            return f"Error: Container for user {user_id} not found."
+
+        container_name = container_info.container_id
+        container = client.containers.get(container_name)
+
+        # Проверяем, активен ли контейнер
+        if container.status != "running":
+            container.start()
+
+        # Формируем путь к конфигурации стратегии
+        strategy_config_path = f"/freqtrade/user_data/{strategy_name}.json"
+
+        # Запускаем стратегию как процесс в контейнере
+        exec_result = container.exec_run([
+            "trade",
+            "-c",
+            strategy_config_path,
+            "--strategy",
+            strategy_name
+        ], detach=True)
+
+        if exec_result.exit_code is not None and exec_result.exit_code != 0:
+            return f"Error starting strategy {strategy_name}: {exec_result.output.decode('utf-8')}"
+
+        # Обновляем статус бота
+        bot = await Bot.filter(user_id=user_id, name=bot_name, strategy=strategy_name).first()
+        if bot:
+            bot.status = "active"
+            await bot.save()
+
+        return f"Strategy {strategy_name} started in container {container_name}."
+    except Exception as e:
+        return f"Error occurred: {str(e)}"
+    finally:
+        await close_db()
+
