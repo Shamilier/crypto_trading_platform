@@ -252,14 +252,17 @@ async def _start_user_strategy(user_id, bot_name, strategy_name):
         # Формируем путь к конфигурации стратегии
         strategy_config_path = f"/freqtrade/user_data/{strategy_name}.json"
 
-        # Запускаем стратегию как процесс в контейнере
         exec_result = container.exec_run([
+            "freqtrade",
             "trade",
             "-c",
             strategy_config_path,
             "--strategy",
-            strategy_name
+            strategy_name,
+            "--user_data_dir", "/freqtrade/user_data"
         ], detach=True)
+
+
 
         if exec_result.exit_code is not None and exec_result.exit_code != 0:
             return f"Error starting strategy {strategy_name}: {exec_result.output.decode('utf-8')}"
