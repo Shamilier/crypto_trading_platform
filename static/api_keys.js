@@ -246,13 +246,21 @@ async function startBot(botId, botName, strategyName) {
 
 async function stopBot(botId) {
     try {
-        await fetch(`/stop-bot/${botId}`, { method: "POST" });
-        alert("Бот остановлен!");
-        loadUserBots(); // Обновление списка
+        const response = await fetch(`/stop-bot/${botId}`, {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${localStorage.getItem("access_token")}`
+            }
+        });
+
+        const result = await response.json();
+        alert(result.message);
+        loadUserBots(); // Обновляем список ботов
     } catch (error) {
         console.error("Ошибка при остановке бота:", error);
     }
 }
+
 
 async function showBotInfo(botId) {
     alert(`Информация о боте с ID: ${botId}`);
