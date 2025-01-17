@@ -139,15 +139,6 @@ async def _create_freqtrade_container(user_id):
 @celery.task
 def add_strategy_to_container(user_id, strategy_name):
     """Добавляет стратегию в контейнер пользователя"""
-    # try:
-    #     # Создаём новый событийный цикл в отдельном потоке
-    #     loop = asyncio.new_event_loop()
-    #     asyncio.set_event_loop(loop)
-    #     result = loop.run_until_complete(_add_strategy_to_container(user_id, strategy_name))
-    #     return result
-    # finally:
-    #     # Закрываем цикл после завершения
-    #     loop.close()
     return run_sync(_add_strategy_to_container(user_id, strategy_name))
 
 
@@ -255,7 +246,7 @@ async def _start_user_strategy(user_id, bot_name, strategy_name):
         exec_result = container.exec_run([
             "freqtrade",
             "trade",
-            "-c",
+            "--config",
             strategy_config_path,
             "--strategy",
             strategy_name,
@@ -274,6 +265,46 @@ async def _start_user_strategy(user_id, bot_name, strategy_name):
             await bot.save()
 
         return f"Strategy {strategy_name} started in container {container_name}."
+    except Exception as e:
+        return f"Error occurred: {str(e)}"
+    finally:
+        await close_db()
+
+
+@celery.task
+def stop_user_bot(user_id):
+    """Останавливает Docker-контейнер пользователя."""
+    return run_sync(_stop_user_bot(user_id))
+
+async def _stop_user_bot(user_id):
+    await init_db()
+    try:
+        # Получаем информацию о контейнере пользователя
+        container_info = await Containers.filter(user_id=user_id).first()
+        if not container_info:
+            return f"Error: Container for user {user_id} not found."
+
+        container_name = container_info.container_id
+        container = client.containers.get(container_name)
+
+        # Проверяем, активен ли контейнер
+        if container.status != "running":
+            return f"Container {container_name} is not running."
+
+        # Останавливаем контейнер
+        container.stop()
+
+        # Обновляем статус контейнера в базе данных
+        container_info.status = "stopped"
+        await container_info.save()
+
+        # Обновляем статус ботов
+        bots = await Bot.filter(user_id=user_id, status="active").all()
+        for bot in bots:
+            bot.status = "inactive"
+            await bot.save()
+
+        return f"Container {container_name} stopped successfully."
     except Exception as e:
         return f"Error occurred: {str(e)}"
     finally:

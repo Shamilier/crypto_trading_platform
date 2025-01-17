@@ -16,7 +16,7 @@ import secrets
 from app.security import *
 from app.dependencies import get_current_user
 from tortoise.exceptions import IntegrityError, DoesNotExist
-from app.celery_worker import create_freqtrade_container, add_strategy_to_container, start_user_strategy
+from app.celery_worker import create_freqtrade_container, add_strategy_to_container, start_user_strategy, stop_user_bot
 from cryptography.fernet import Fernet
 print(Fernet.generate_key().decode())
 import logging
@@ -229,6 +229,10 @@ async def start_bot(bot_name: str, strategy_name: str, user: User = Depends(get_
     task = start_user_strategy.delay(user.id, bot_name, strategy_name)
     return {"message": f"Task to start bot {bot_name} with strategy {strategy_name} created.", "task_id": task.id}
 
+@auth_routes.post("/stop-bot/{bot_id}")
+async def stop_bot(bot_id: int, user: User = Depends(get_current_user)):
+    task = stop_user_bot.delay(user.id)
+    return {"message": f"Task to stop bot {bot_id} created.", "task_id": task.id}
 
 
 # Add API Key to Database
