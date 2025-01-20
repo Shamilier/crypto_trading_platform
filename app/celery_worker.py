@@ -334,10 +334,11 @@ async def _stop_user_bot(user_id, strategy_name):
     await init_db()
     try:
         # Получаем информацию о контейнере стратегии
-        
+
         container_info = await Containers.filter(user_id=user_id, container_id=f"freqtrade_user_{user_id}_strategy_{strategy_name}").first()
         if not container_info:
             return f"Error: Container for strategy {strategy_name} not found."
+        
 
         container_name = container_info.container_id
         container = client.containers.get(container_name)
