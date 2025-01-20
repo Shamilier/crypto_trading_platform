@@ -8,6 +8,10 @@ from app.models import Containers  # Импорт модели Containers
 from tortoise import Tortoise
 import asyncio
 from app.models import Bot  # Импорт модели Bot
+import subprocess
+import shutil
+import yaml
+
 
 
 celery = Celery(
@@ -68,6 +72,8 @@ def run_sync(func):
     return loop.run_until_complete(func)
 
 
+
+
 @celery.task
 def create_freqtrade_container(user_id):
     return run_sync(_create_freqtrade_container(user_id))
@@ -76,62 +82,53 @@ async def _create_freqtrade_container(user_id):
     await init_db()
     try:
         async with in_transaction():
+            # Проверяем, существует ли уже контейнер для пользователя
             existing_container = await Containers.filter(user_id=user_id).first()
             if existing_container:
-                return f"Container for user {user_id} already exists on port {existing_container.port}"
+                return f"Container for user {user_id} already exists."
 
-            container_name = f"freqtrade_user_{user_id}"
+            user_directory = f"./user_data/user_{user_id}"
 
-            # Путь к папке с данными пользователя
-            user_data_host_path = os.path.abspath(f"./user_data/user_{user_id}")
+            # Проверяем существование docker-compose.yml
+            if not os.path.exists(os.path.join(user_directory, "docker-compose.yml")):
+                return f"Docker Compose file not found for user {user_id}."
 
-            # Проверка наличия папки
-            if not os.path.exists(user_data_host_path):
-                return f"Error: directory {user_data_host_path} does not exist"
-            
-            # Получаем следующий доступный порт
-            next_port = await get_next_available_port()
+            # Регистрируем проект без запуска контейнера
+            subprocess.run(
+                ["docker-compose", "-p", f"user_{user_id}", "config"],
+                cwd=user_directory,
+                check=True
+            )
 
-            try:
-                # Создаем контейнер но не запускаем
-                container = client.containers.create(
-                    "freqtradeorg/freqtrade:stable",
-                    name=container_name,
-                    detach=True,
-                    ports={'8080/tcp': ('0.0.0.0', next_port)},  # Назначаем порт
-                    command=[
-                        "trade",
-                        "-c",
-                        "/freqtrade/user_data/f_scalp.json",
-                        "--strategy",
-                        "ScalpFutures"
-                    ]
-                )
+            # Создаём имя контейнера (placeholder)
+            container_name = f"user_{user_id}_placeholder"
 
+            # Сохраняем информацию о контейнере в базе данных
+            await Containers.create(
+                user_id=user_id,
+                container_id=container_name,
+                port=0,  # Заглушка не использует порт
+                status="registered"  # Статус: зарегистрирован, но не запущен
+            )
 
-                # Стартуем контейнер
-                # container.start()
-
-                # Копируем данные пользователя в контейнер
-                copy_to_container(container, user_data_host_path, '/freqtrade/user_data')
-
-                # Сохраняем информацию о контейнере в базе данных
-                await Containers.create(
-                    user_id=user_id,
-                    container_id=container.id,
-                    port=next_port,
-                    status="created"
-                )
-
-                return f"Container {container_name} created on port {next_port} and user data copied."
-            
-            except docker.errors.ImageNotFound:
-                return "Error: Image freqtradeorg/freqtrade:stable not found."
-            
-            except Exception as e:
-                return f"Error occurred: {str(e)}"
+            return f"Project for user {user_id} successfully registered with placeholder container."
     finally:
         await close_db()
+
+
+def run_docker_compose(user_directory):
+    try:
+        subprocess.run(
+            ["docker-compose", "up", "-d"],
+            cwd=user_directory,
+            check=True
+        )
+    except subprocess.CalledProcessError as e:
+        return f"Error running docker-compose: {str(e)}"
+
+
+
+
 
 
 
@@ -143,12 +140,12 @@ def add_strategy_to_container(user_id, strategy_name):
 
 
 async def _add_strategy_to_container(user_id, strategy_name):
-    """Асинхронная функция для добавления стратегии"""
+    """Асинхронная функция для добавления стратегии с созданием нового контейнера, но без запуска"""
     await init_db()
     try:
         # Основная логика добавления стратегии
-        user_path = os.path.abspath(f"./user_data/user_{user_id}")
-        user_strategies_path = os.path.join(user_path, "strategies")
+        user_directory = f"./user_data/user_{user_id}"
+        strategy_directory = os.path.join(user_directory, "strategies")
         json_file_path = os.path.abspath(f"./user_data/example/{strategy_name}.json")
         py_file_path = os.path.abspath(f"./user_data/example/strategies/{strategy_name}.py")
 
@@ -156,55 +153,56 @@ async def _add_strategy_to_container(user_id, strategy_name):
         if not os.path.exists(json_file_path) or not os.path.exists(py_file_path):
             return f"Error: Strategy files for {strategy_name} not found."
 
-        # Создаём необходимые папки
-        os.makedirs(user_path, exist_ok=True)
-        os.makedirs(user_strategies_path, exist_ok=True)
+        # Создаем необходимые папки
+        os.makedirs(strategy_directory, exist_ok=True)
 
-        # Копируем файлы
-        user_json_file_path = os.path.join(user_path, f"{strategy_name}.json")
-        user_py_file_path = os.path.join(user_strategies_path, f"{strategy_name}.py")
+        # Копируем файлы стратегии локально
+        user_json_file_path = os.path.join(user_directory, f"{strategy_name}.json")
+        user_py_file_path = os.path.join(strategy_directory, f"{strategy_name}.py")
+        shutil.copy(json_file_path, user_json_file_path)
+        shutil.copy(py_file_path, user_py_file_path)
 
-        with open(json_file_path, 'rb') as src_file:
-            with open(user_json_file_path, 'wb') as dest_file:
-                dest_file.write(src_file.read())
+        # Создаем новый контейнер
+        container_name = f"freqtrade_user_{user_id}_strategy_{strategy_name}"
+        next_port = await get_next_available_port()
 
-        with open(py_file_path, 'rb') as src_file:
-            with open(user_py_file_path, 'wb') as dest_file:
-                dest_file.write(src_file.read())
+        # Обновляем docker-compose.yml
+        update_docker_compose(user_directory, container_name, next_port, strategy_name)
 
-        # Монтируем файлы в контейнер
-        container_info = await Containers.filter(user_id=user_id).first()
-        if not container_info:
-            return f"Error: Container for user {user_id} not found."
+        # Подготавливаем контейнер, но не запускаем его
+        subprocess.run(["docker-compose", "create", container_name], cwd=user_directory, check=True)
 
-        container_name = container_info.container_id
+        # Получаем объект контейнера
         container = client.containers.get(container_name)
 
-        # Монтируем JSON файл
-        with open(user_json_file_path, "rb") as json_file:
-            json_tar = create_tar_archive_from_file({f"{strategy_name}.json": json_file.read()})
-            container.put_archive("/freqtrade/user_data", json_tar)
+        # Копируем локальные файлы в контейнер
+        copy_to_container(container, user_directory, "/freqtrade/user_data")
 
-        # Монтируем Python файл
-        with open(user_py_file_path, "rb") as py_file:
-            py_tar = create_tar_archive_from_file({f"{strategy_name}.py": py_file.read()})
-            container.put_archive("/freqtrade/user_data/strategies/", py_tar)
-
-        await Bot.create(
+        # Сохраняем информацию о новом контейнере в базе данных
+        await Containers.create(
             user_id=user_id,
-            name=strategy_name,  # Название совпадает с названием стратегии
-            strategy=strategy_name,  # Название стратегии
-            status="inactive",  # Статус: неактивен
-            balance_used=-1.0,  # Пока неизвестно, используем -1
-            indicators=["-"],  # Пока пустые индикаторы
-            profit=0.0,  # Начальная прибыль
+            container_id=container_name,
+            port=next_port,
+            status="created"  # Контейнер создан, но не запущен
         )
 
-        return f"Strategy {strategy_name} successfully added to container {container_name} and database."
+        # Сохраняем информацию о стратегии
+        await Bot.create(
+            user_id=user_id,
+            name=strategy_name,
+            strategy=strategy_name,
+            status="inactive",  # Статус стратегии: неактивна
+            balance_used=-1.0,
+            indicators=["-"],
+            profit=0.0,
+        )
+
+        return f"Strategy {strategy_name} successfully added and container {container_name} created."
     except Exception as e:
         return f"Error occurred: {str(e)}"
     finally:
         await close_db()
+
 
 
 def create_tar_archive_from_file(files: dict) -> BytesIO:
@@ -220,18 +218,79 @@ def create_tar_archive_from_file(files: dict) -> BytesIO:
 
 
 
+
+
+def update_docker_compose(user_directory, container_name, next_port, strategy_name):
+    """Добавляет новый сервис в docker-compose.yml без перезаписи существующего."""
+    docker_compose_path = os.path.join(user_directory, "docker-compose.yml")
+
+    # Загружаем существующий docker-compose.yml
+    compose_data = {"version": "3.8", "services": {}}
+    if os.path.exists(docker_compose_path):
+        with open(docker_compose_path, "r") as file:
+            try:
+                compose_data = yaml.safe_load(file) or compose_data
+            except yaml.YAMLError:
+                # Если YAML содержит ошибки, используем пустую структуру
+                pass
+
+    # Убедимся, что секция services существует
+    if "services" not in compose_data:
+        compose_data["services"] = {}
+
+    # Проверяем, добавлялся ли уже сервис
+    if container_name in compose_data["services"]:
+        print(f"Сервис {container_name} уже существует в docker-compose.yml")
+        return
+    
+    if "freqtrade" in compose_data["services"]:
+        compose_data["services"]["freqtrade"]["restart"] = "no"
+
+    # Добавляем новый сервис
+    compose_data["services"][container_name] = {
+
+        "image": "freqtradeorg/freqtrade:stable",
+        "container_name": container_name,
+        "restart": "always",
+        "volumes": [
+            f"{user_directory}:/freqtrade/user_data"
+        ],
+        "ports": [
+            f"{next_port}:8080"
+        ],
+        "command": f"trade --db-url sqlite:////freqtrade/user_data/trades.sqlite --config /freqtrade/user_data/{strategy_name}.json --strategy {strategy_name}",
+        "logging": {
+            "driver": "json-file",
+            "options": {
+                "max-size": "10m",
+                "max-file": "3"
+            }
+        }
+
+    }
+
+    # Сохраняем обновленный файл
+    with open(docker_compose_path, "w") as file:
+        yaml.dump(compose_data, file, default_flow_style=False, sort_keys=False)
+
+    print(f"Сервис {container_name} добавлен в docker-compose.yml")
+
+
+
+
+
 @celery.task
 def start_user_strategy(user_id, bot_name, strategy_name):
-    """Запускает стратегию как процесс в существующем контейнере."""
+    """Запускает стратегию в отдельном контейнере."""
     return run_sync(_start_user_strategy(user_id, bot_name, strategy_name))
 
 async def _start_user_strategy(user_id, bot_name, strategy_name):
     await init_db()
     try:
-        # Получаем контейнер пользователя
-        container_info = await Containers.filter(user_id=user_id).first()
+        # Получаем информацию о контейнере стратегии
+        container_info = await Containers.filter(user_id=user_id, container_id=f"freqtrade_user_{user_id}_strategy_{strategy_name}").first()
         if not container_info:
-            return f"Error: Container for user {user_id} not found."
+            return f"Error: Container for strategy {strategy_name} not found."
 
         container_name = container_info.container_id
         container = client.containers.get(container_name)
@@ -240,23 +299,9 @@ async def _start_user_strategy(user_id, bot_name, strategy_name):
         if container.status != "running":
             container.start()
 
-        # Формируем путь к конфигурации стратегии
-        strategy_config_path = f"/freqtrade/user_data/{strategy_name}.json"
-
-        exec_result = container.exec_run([
-            "freqtrade",
-            "trade",
-            "--config",
-            strategy_config_path,
-            "--strategy",
-            strategy_name,
-            "--user_data_dir", "/freqtrade/user_data"
-        ], detach=True)
-
-
-
-        if exec_result.exit_code is not None and exec_result.exit_code != 0:
-            return f"Error starting strategy {strategy_name}: {exec_result.output.decode('utf-8')}"
+        # Убедимся, что контейнер запущен и активен
+        if container.status != "running":
+            return f"Error: Failed to start container {container_name}."
 
         # Обновляем статус бота
         bot = await Bot.filter(user_id=user_id, name=bot_name, strategy=strategy_name).first()
@@ -264,25 +309,33 @@ async def _start_user_strategy(user_id, bot_name, strategy_name):
             bot.status = "active"
             await bot.save()
 
+        # Обновляем статус контейнера
+        container_info.status = "running"
+        await container_info.save()
+
         return f"Strategy {strategy_name} started in container {container_name}."
     except Exception as e:
-        return f"Error occurred: {str(e)}"
+        return f"Error occurred while starting strategy {strategy_name}: {str(e)}"
     finally:
         await close_db()
 
 
-@celery.task
-def stop_user_bot(user_id):
-    """Останавливает Docker-контейнер пользователя."""
-    return run_sync(_stop_user_bot(user_id))
 
-async def _stop_user_bot(user_id):
+
+
+
+@celery.task
+def stop_user_bot(user_id, strategy_name):
+    """Останавливает контейнер для указанной стратегии."""
+    return run_sync(_stop_user_bot(user_id, strategy_name))
+
+async def _stop_user_bot(user_id, strategy_name):
     await init_db()
     try:
-        # Получаем информацию о контейнере пользователя
-        container_info = await Containers.filter(user_id=user_id).first()
+        # Получаем информацию о контейнере стратегии
+        container_info = await Containers.filter(user_id=user_id, container_id=f"freqtrade_user_{user_id}_strategy_{strategy_name}").first()
         if not container_info:
-            return f"Error: Container for user {user_id} not found."
+            return f"Error: Container for strategy {strategy_name} not found."
 
         container_name = container_info.container_id
         container = client.containers.get(container_name)
@@ -294,19 +347,18 @@ async def _stop_user_bot(user_id):
         # Останавливаем контейнер
         container.stop()
 
-        # Обновляем статус контейнера в базе данных
+        # Обновляем статус контейнера
         container_info.status = "stopped"
         await container_info.save()
 
-        # Обновляем статус ботов
-        bots = await Bot.filter(user_id=user_id, status="active").all()
-        for bot in bots:
+        # Обновляем статус бота
+        bot = await Bot.filter(user_id=user_id, strategy=strategy_name).first()
+        if bot:
             bot.status = "inactive"
             await bot.save()
 
         return f"Container {container_name} stopped successfully."
     except Exception as e:
-        return f"Error occurred: {str(e)}"
+        return f"Error occurred while stopping strategy {strategy_name}: {str(e)}"
     finally:
         await close_db()
-

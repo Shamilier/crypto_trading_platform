@@ -15,3 +15,5 @@ cryptography
 ccxt
 python-dotenv
 asgiref
+pyyaml
+

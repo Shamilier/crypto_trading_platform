@@ -51,6 +51,24 @@ def create_user_directory(user_id):
     
     return user_directory
 
+def create_user_compose_yml(user_id):
+    user_directory = f"./user_data/user_{user_id}"
+    docker_compose_path = os.path.join(user_directory, "docker-compose.yml")
+    
+    # Создаем docker-compose.yml
+    docker_compose_content = f"""
+version: '3.8'
+services:
+  placeholder:
+    image: scratch
+    container_name: user_{user_id}_placeholder
+    """
+    
+    # Записываем содержимое в файл
+    with open(docker_compose_path, "w") as f:
+        f.write(docker_compose_content)
+
+
 
 async def validate_api_key(exchange_name: str, api_key: str, secret_key: str):
     try:
@@ -203,6 +221,7 @@ async def account_page(request: Request, current_user: User = Depends(get_curren
     
     if not existing_container:
         user_directory = create_user_directory(user_id)
+        create_yml = create_user_compose_yml(user_id)
         create_freqtrade_container.delay(user_id)
     
     return templates.TemplateResponse("account_page.html", {
@@ -210,6 +229,29 @@ async def account_page(request: Request, current_user: User = Depends(get_curren
         "username": current_user.username,
         "user_id": current_user.id
     })
+
+# # Account Page
+# @auth_routes.get("/account", response_class=HTMLResponse)
+# async def account_page(request: Request, current_user: User = Depends(get_current_user)):
+#     user_id = current_user.id
+    
+#     # Проверяем, существует ли у пользователя контейнер
+#     existing_container = await Containers.filter(user_id=user_id).first()
+    
+#     if not existing_container:
+#         # Создаем директорию пользователя
+#         user_directory = create_user_directory(user_id)
+        
+#         # Создаем docker-compose.yml и базовый контейнер
+#         create_user_docker_compose(user_id)
+#         create_freqtrade_container.delay(user_id)  # Задача Celery для создания контейнера
+    
+#     return templates.TemplateResponse("account_page.html", {
+#         "request": request,
+#         "username": current_user.username,
+#         "user_id": current_user.id
+#     })
+
 
 @auth_routes.get("/user-bots", response_model=List[Bot_Pydantic])
 async def get_user_bots(user: User = Depends(get_current_user)):
@@ -231,8 +273,15 @@ async def start_bot(bot_name: str, strategy_name: str, user: User = Depends(get_
 
 @auth_routes.post("/stop-bot/{bot_id}")
 async def stop_bot(bot_id: int, user: User = Depends(get_current_user)):
-    task = stop_user_bot.delay(user.id)
-    return {"message": f"Task to stop bot {bot_id} created.", "task_id": task.id}
+    # Получаем стратегию по bot_id
+    bot = await Bot.filter(id=bot_id, user=user).first()
+    if not bot:
+        return {"error": "Bot not found or does not belong to the user."}
+
+    task = stop_user_bot.delay(user.id, bot.strategy)
+    return {"message": f"Task to stop bot {bot_id} with strategy {bot.strategy} created.", "task_id": task.id}
+
+
 
 
 # Add API Key to Database
@@ -349,10 +398,7 @@ async def get_strategies(request: Request):
 async def add_strategy(strategy_name: str = Form(...), user: User = Depends(get_current_user)):
     # Передаём ID пользователя и название стратегии в Celery задачу
     result = add_strategy_to_container.delay(user.id, strategy_name)
-    # result = add_strategy_to_container(user.id, strategy_name)
-    # if "Error" in result:
-    #     raise HTTPException(status_code=400, detail=result)
-    # return RedirectResponse(url="/strategies", status_code=302)
+
 
 
 @auth_routes.get("/user-strategies", response_model=List[Bot_Pydantic])
