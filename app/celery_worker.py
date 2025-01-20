@@ -108,7 +108,7 @@ async def _create_freqtrade_container(user_id):
                 user_id=user_id,
                 container_id=container_name,
                 port=0,  # Заглушка не использует порт
-                
+
                 status="registered"  # Статус: зарегистрирован, но не запущен
             )
 
@@ -334,6 +334,7 @@ async def _stop_user_bot(user_id, strategy_name):
     await init_db()
     try:
         # Получаем информацию о контейнере стратегии
+        
         container_info = await Containers.filter(user_id=user_id, container_id=f"freqtrade_user_{user_id}_strategy_{strategy_name}").first()
         if not container_info:
             return f"Error: Container for strategy {strategy_name} not found."
