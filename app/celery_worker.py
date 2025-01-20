@@ -330,6 +330,7 @@ def stop_user_bot(user_id, strategy_name):
     """Останавливает контейнер для указанной стратегии."""
     return run_sync(_stop_user_bot(user_id, strategy_name))
 
+
 async def _stop_user_bot(user_id, strategy_name):
     await init_db()
     try:
