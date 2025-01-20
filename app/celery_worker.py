@@ -108,6 +108,7 @@ async def _create_freqtrade_container(user_id):
                 user_id=user_id,
                 container_id=container_name,
                 port=0,  # Заглушка не использует порт
+                
                 status="registered"  # Статус: зарегистрирован, но не запущен
             )
 
