@@ -10,6 +10,10 @@ app = FastAPI()
 @app.on_event("startup")
 async def startup():
     await init()
+
+@app.on_event("shutdown")
+async def shutdown():
+    await close()
     
 app.add_middleware(
     CORSMiddleware,

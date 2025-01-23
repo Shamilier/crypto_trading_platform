@@ -1,4 +1,5 @@
 from tortoise import Tortoise
+import asyncpg
 
 DATABASE_URL = "postgres://postgres:password@db:5432/trading_db"
 
@@ -14,29 +15,34 @@ TORTOISE_ORM = {
     },
 }
 
+async def ensure_database_exists():
+    """
+    Проверяет наличие базы данных trading_db, если её нет — создаёт.
+    """
+    dsn = DATABASE_URL.replace("/trading_db", "/postgres")
+    conn = await asyncpg.connect(dsn)
+    try:
+        # Проверяем наличие базы данных
+        result = await conn.fetchval("SELECT 1 FROM pg_database WHERE datname = 'trading_db'")
+        if not result:
+            # Создаём базу данных, если она отсутствует
+            await conn.execute("CREATE DATABASE trading_db")
+            print("База данных trading_db была создана.")
+        else:
+            print("База данных trading_db уже существует.")
+    finally:
+        await conn.close()
+
 async def init():
-    await Tortoise.init(config=TORTOISE_ORM)
-
-    # Получаем текущее соединение
-    # conn = Tortoise.get_connection("default")
-
-    # Удаляем все таблицы
-    # await conn.execute_script("""
-    #     DO $$ DECLARE
-    #     r RECORD;
-    #     BEGIN
-    #         FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public') LOOP
-    #             EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';
-    #         END LOOP;
-    #     END $$;
-    # """)
-
-    # # Пересоздаём схемы
-    # await Tortoise.generate_schemas(safe=True)
-    await Tortoise.generate_schemas(safe=True)
-
-
+    """
+    Инициализация базы данных и ORM.
+    """
+    await ensure_database_exists()  # Проверяем и создаём базу данных, если нужно
+    await Tortoise.init(config=TORTOISE_ORM)  # Подключаемся через Tortoise ORM
+    await Tortoise.generate_schemas(safe=True)  # Генерируем схемы (таблицы)
 
 async def close():
+    """
+    Закрывает соединения с базой данных.
+    """
     await Tortoise.close_connections()
-

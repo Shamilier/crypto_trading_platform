@@ -16,4 +16,5 @@ ccxt
 python-dotenv
 asgiref
 pyyaml
+asyncpg
 
