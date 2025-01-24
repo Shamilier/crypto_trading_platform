@@ -252,7 +252,7 @@ def update_docker_compose(user_directory, container_name, next_port, strategy_na
 
         "image": "freqtradeorg/freqtrade:stable",
         "container_name": container_name,
-        "restart": "always",
+        "restart": "unless-stopped",
         "volumes": [
             f"{user_directory}:/freqtrade/user_data"
         ],
