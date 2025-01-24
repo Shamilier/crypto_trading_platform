@@ -1,0 +1,88 @@
+
+{
+    "max_open_trades": 1,
+    "stake_currency": "USDT",
+    "stake_amount": 500,
+    "tradable_balance_ratio": 1.0,
+    "fiat_display_currency": "USD",
+    "dry_run": true,
+    "dry_run_wallet": 500,
+    "cancel_open_orders_on_exit": false,
+    "trading_mode": "spot",
+
+    "unfilledtimeout": {
+      "entry": 10,
+      "exit": 10,
+      "exit_timeout_count": 0,
+      "unit": "minutes"
+    },
+    "entry_pricing": {
+      "price_side": "same",
+      "use_order_book": true,
+      "order_book_top": 1,
+      "price_last_balance": 0.0,
+      "check_depth_of_market": {
+        "enabled": false,
+        "bids_to_ask_delta": 1
+      }
+    },
+    "exit_pricing": {
+      "price_side": "same",
+      "use_order_book": true,
+      "order_book_top": 1
+    },
+    "exchange": {
+      "name": "bybit",
+      "key": "",
+      "secret": "",
+      "ccxt_config": {},
+      "ccxt_async_config": {},
+      "pair_whitelist": [
+        "XMR/USDT","FTM/USDT","CHR/USDT","BNB/USDT","ALGO/USDT","XEM/USDT","ZEC/USDT",
+        "CHZ/USDT","BTT/USDT","VRA/USDT","KSM/USDT","DASH/USDT","CRO/USDT",
+        "DIA/USDT","LINK/USDT","YFI/USDT","UNI/USDT","FIL/USDT","AAVE/USDT","KCS/USDT","LTC/USDT","BSV/USDT",
+        "XLM/USDT","ETC/USDT","ETH/USDT","BTC/USDT","XRP/USDT","VET/USDT","NEO/USDT","BCH/USDT","KLV/USDT","DOGE/USDT","MANA/USDT","SAND/USDT","SHIB/USDT",
+        "KDA/USDT","ICP/USDT","MATIC/USDT","ELON/USDT","NFT/USDT","ARRR/USDT","NEAR/USDT","CLV/USDT",
+        "XPR/USDT","KAVA/USDT","XEC/USDT"
+      ],
+      "pair_blacklist": []
+    },
+    "pairlists": [{ "method": "StaticPairList" }],
+    "edge": {
+      "enabled": false,
+      "process_throttle_secs": 3600,
+      "calculate_since_number_of_days": 7,
+      "allowed_risk": 0.01,
+      "stoploss_range_min": -0.01,
+      "stoploss_range_max": -0.99,
+      "stoploss_range_step": -0.01,
+      "minimum_winrate": 0.6,
+      "minimum_expectancy": 0.2,
+      "min_trade_number": 10,
+      "max_trade_duration_minute": 1440,
+      "remove_pumps": false
+    },
+    "telegram": {
+      "enabled": true,
+      "token": "",
+      "chat_id": ""
+    },
+    "api_server": {
+      "enabled": true,
+      "listen_ip_address": "0.0.0.0",
+      "listen_port": 8080,
+      "verbosity": "error",
+      "enable_openapi": false,
+      "jwt_secret_key": "556ebba5770ae3a07e80eda0f0f2b55df102896f8a5b86459c3433c1314345c4",
+      "CORS_origins": [],
+      "username": "",
+      "password": ""
+    },
+    "bot_name": "",
+    "initial_state": "running",
+    "force_entry_enable": false,
+    "internals": {
+      "process_throttle_secs": 5
+    }
+  }
+  
