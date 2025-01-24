@@ -2,12 +2,12 @@
 {
     "max_open_trades": 1,
     "stake_currency": "USDT",
-    "stake_amount": 500,
+    "stake_amount": 488,
     "tradable_balance_ratio": 1.0,
     "fiat_display_currency": "USD",
-    "dry_run": true,
-    "dry_run_wallet": 500,
+    "dry_run": false,
     "cancel_open_orders_on_exit": false,
+    "available_capital": 488,
     "trading_mode": "spot",
 
     "unfilledtimeout": {
@@ -33,8 +33,8 @@
     },
     "exchange": {
       "name": "bybit",
-      "key": "",
-      "secret": "",
+      "key": "tEneBlFSbbJz36HAI9",
+      "secret": "u4cqPfGbNtNOxMLWcL4xsE4sm6roZb2Vd33e",
       "ccxt_config": {},
       "ccxt_async_config": {},
       "pair_whitelist": [
@@ -63,7 +63,7 @@
       "remove_pumps": false
     },
     "telegram": {
-      "enabled": true,
+      "enabled": false,
       "token": "",
       "chat_id": ""
     },
