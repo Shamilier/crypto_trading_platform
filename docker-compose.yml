@@ -18,6 +18,9 @@ services:
     environment:
       - DATABASE_URL=postgres://postgres:password@db:5432/trading_db
     privileged: true
+    networks:
+      - my_network
+    
 
 
   db:
@@ -32,6 +35,8 @@ services:
     ports:
       - "5432:5432"
     privileged: true
+    networks:
+      - my_network
 
 
   celery_worker:
@@ -45,12 +50,21 @@ services:
       - db
       - redis
     privileged: true
+    networks:
+      - my_network
 
 
   redis:
     image: redis:alpine
+    networks:
+      - my_network
 
 
 
 volumes:
   postgres_data:
+
+networks:
+  my_network:
+    driver: bridge
+
