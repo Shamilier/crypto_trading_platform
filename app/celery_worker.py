@@ -249,7 +249,6 @@ def update_docker_compose(user_directory, container_name, next_port, strategy_na
 
     # Добавляем новый сервис
     compose_data["services"][container_name] = {
-
         "image": "freqtradeorg/freqtrade:stable",
         "container_name": container_name,
         "restart": "unless-stopped",
@@ -257,14 +256,14 @@ def update_docker_compose(user_directory, container_name, next_port, strategy_na
             f"{user_directory}:/freqtrade/user_data"
         ],
         "ports": [
-            f"{next_port}:8080"
+            f"{next_port}"
         ],
         "command": f"trade --db-url sqlite:////freqtrade/user_data/trades.sqlite --config /freqtrade/user_data/{strategy_name}.json --strategy {strategy_name}",
         "logging": {
             "driver": "json-file",
             "options": {
-                "max-size": "10m",
-                "max-file": "3"
+                "max-size": "256m",
+                "max-file": "30"
             }
         }
 

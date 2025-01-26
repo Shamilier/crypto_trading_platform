@@ -1,6 +1,7 @@
 version: '3.8'
-
 services:
+
+
   app:
     build: .
     container_name: crypto_trading_app
@@ -19,7 +20,6 @@ services:
     privileged: true
 
 
-
   db:
     image: postgres:13
     container_name: postgres_db
@@ -33,6 +33,7 @@ services:
       - "5432:5432"
     privileged: true
 
+
   celery_worker:
     build: .
     container_name: celery_worker
@@ -45,8 +46,11 @@ services:
       - redis
     privileged: true
 
+
   redis:
     image: redis:alpine
+
+
 
 volumes:
   postgres_data:
