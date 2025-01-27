@@ -14,13 +14,16 @@ class OneTimeBTCBuyStrategy(IStrategy):
     }
 
     # Стоп-лосс
-    stoploss = -0.03  # Максимальная потеря 10%
+    stoploss = -0.03  # Максимальная потеря 3%
 
     # Количество свечей для инициализации
     startup_candle_count = 1
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, config):
+        """
+        Конструктор стратегии.
+        """
+        super().__init__(config)  # Передаем config в базовый класс
         self.has_bought = False  # Флаг, который указывает, была ли уже сделка
 
     def populate_indicators(self, dataframe, metadata):
