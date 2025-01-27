@@ -1,7 +1,9 @@
 import os
 from tortoise import Tortoise
 
-DATABASE_URL = "postgres://postgres:password@0.0.0.0:5432/trading_db"
+# DATABASE_URL = "postgres://postgres:password@0.0.0.0:5432/trading_db"
+DATABASE_URL = "postgres://postgres:password@db:5432/trading_db"
+
 
 TORTOISE_ORM = {
     "connections": {
