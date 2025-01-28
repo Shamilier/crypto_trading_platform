@@ -29,11 +29,10 @@ jobs:
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
           cd /home/user/crypto_trading_platform
-          docker exec -it postgres_db psql -U postgres
+          docker exec -i postgres_db psql -U postgres << EOF
           \c trading_db
           SET session_replication_role = 'replica';
-          
-          DO $$
+          DO \$\$
           DECLARE
               table_name TEXT;
           BEGIN
@@ -44,16 +43,16 @@ jobs:
               LOOP
                   EXECUTE FORMAT('TRUNCATE TABLE %I RESTART IDENTITY CASCADE;', table_name);
               END LOOP;
-          END $$;
+          END \$\$;
           SET session_replication_role = 'origin';
-
-          DO $$ BEGIN
+          DO \$\$ BEGIN
               RAISE NOTICE 'Все таблицы успешно очищены.';
-          END $$;
-
+          END \$\$;
+          EOF
           docker rm -f $(docker ps -aq)
-          rm -r user_data/user_1
+          rm -rf user_data/user_1
           git restore .
           git pull
           docker-compose down
           docker-compose up -d
+
