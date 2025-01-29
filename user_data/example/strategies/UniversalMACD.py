@@ -1,3 +1,7 @@
+# pragma pylint: disable=missing-docstring, invalid-name, pointless-string-statement
+# flake8: noqa: F401
+# isort: skip_file
+# --- Do not remove these libs ---
 import numpy as np
 import pandas as pd
 from pandas import DataFrame
@@ -52,16 +56,29 @@ class UniversalMACD(IStrategy):
     # Avg    duration    3: 13:00    min.\
     # Objective: -11.63412
 
-    # ROI table:
     minimal_roi = {
-        "0": 0.213,
-        "27": 0.099,
-        "60": 0.03,
-        "164": 0
+        "0": 0.275,
+        "31": 0.098,
+        "88": 0.038,
+        "205": 0
     }
 
     # Stoploss:
-    stoploss = -0.318
+    stoploss = -0.151
+
+
+
+
+    # minimal_roi = {
+    #     "0": 0.154,
+    #     "15": 0.08,
+    #     "43": 0.034,
+    #     "110": 0
+    # }
+
+    # # Stoploss:
+    # stoploss = -0.231
+
 
     # Trailing stop:
     trailing_stop = False  # value loaded from strategy
@@ -77,6 +94,25 @@ class UniversalMACD(IStrategy):
     buy_umacd_min = DecimalParameter(-0.05, 0.05, decimals=5, default=-0.01416, space="buy")
     sell_umacd_max = DecimalParameter(-0.05, 0.05, decimals=5, default=-0.02323, space="sell")
     sell_umacd_min = DecimalParameter(-0.05, 0.05, decimals=5, default=-0.00707, space="sell")
+
+
+    def leverage(self, pair: str, current_time: datetime, current_rate: float,
+                 proposed_leverage: float, max_leverage: float, entry_tag: str | None, side: str,
+                 **kwargs) -> float:
+        """
+        Customize leverage for each new trade. This method is only called in futures mode.
+
+        :param pair: Pair that's currently analyzed
+        :param current_time: datetime object, containing the current datetime
+        :param current_rate: Rate, calculated based on pricing settings in exit_pricing.
+        :param proposed_leverage: A leverage proposed by the bot.
+        :param max_leverage: Max leverage allowed on this pair
+        :param entry_tag: Optional entry_tag (buy_tag) if provided with the buy signal.
+        :param side: "long" or "short" - indicating the direction of the proposed trade
+        :return: A leverage amount, which is between 1.0 and max_leverage.
+        """
+        return 5.0
+
 
     def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         dataframe['ma12'] = ta.EMA(dataframe, timeperiod=12)

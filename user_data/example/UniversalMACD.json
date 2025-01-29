@@ -1,14 +1,13 @@
-
 {
-    "max_open_trades": 1,
-    "stake_currency": "USDT",
-    "stake_amount": 244,
-    "tradable_balance_ratio": 1.0,
-    "fiat_display_currency": "USD",
-    "dry_run": false,
-    "cancel_open_orders_on_exit": false,
-    "available_capital": 488,
-    "trading_mode": "spot",
+  "max_open_trades": -1,
+  "stake_currency": "USDT",
+  "stake_amount": 235,
+  "available_capital": 487,
+  "tradable_balance_ratio": 1.0,
+  "fiat_display_currency": "USD",
+  "dry_run": false,
+  "cancel_open_orders_on_exit": false,
+  "trading_mode": "spot",
 
     "unfilledtimeout": {
       "entry": 10,
