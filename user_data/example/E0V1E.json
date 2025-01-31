@@ -146,6 +146,7 @@
       [
         "/balance",
         "/profit",
+        
         "/start",
         "/stop"
       ],
