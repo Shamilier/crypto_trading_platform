@@ -101,7 +101,7 @@
             "method": "VolumePairList",
             "number_assets": 200,
             "sort_key": "quoteVolume",
-            "refresh_period": 1440
+            "refresh_period": 1240
         },
         {"method": "AgeFilter", "min_days_listed": 14},
         {"method": "SpreadFilter", "max_spread_ratio": 0.005},
@@ -144,7 +144,6 @@
     "chat_id": "1297355532",
     "keyboard": [
       [
-        "/daily",
         "/balance",
         "/profit",
         "/start",
