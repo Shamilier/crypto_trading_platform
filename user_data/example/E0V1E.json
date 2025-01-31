@@ -98,11 +98,6 @@
   },
   "pairlists": [
         {
-            "method": "StaticPairList"
-        }
-  ],
-  "pairlists0": [
-        {
             "method": "VolumePairList",
             "number_assets": 200,
             "sort_key": "quoteVolume",
