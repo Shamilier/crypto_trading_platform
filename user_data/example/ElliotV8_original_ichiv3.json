@@ -2,7 +2,7 @@
   "max_open_trades": 1,
   "stake_currency": "USDT",
   "stake_amount": "unlimited",
-  "available_capital": 250,
+  "available_capital": 1000,
   "tradable_balance_ratio": 1.0,
   "fiat_display_currency": "USD",
   "dry_run": false,
@@ -31,9 +31,9 @@
       "order_book_top": 1
     },
     "exchange": {
-      "name": "bybit",
-      "key": "tEneBlFSbbJz36HAI9",
-      "secret": "u4cqPfGbNtNOxMLWcL4xsE4sm6roZb2Vd33e",
+      "name": "binance",
+      "key": "Tw9aePMW0Monmam0FPqoIERcgXyE1rNIWe4XzUgNfeNKOBNFILMUSe7JHPbxjWHSZ3e8TlVHB8Dl4PrwgPQ",
+      "secret": "MYwkjUIbI42JzkIwwLB00gk0FpaJDXuvExcdj9hp6TVZYOmua6yACg5BcN82FRnbrrUWVV0hSD8pboQgDA",
       "ccxt_config": {},
       "ccxt_async_config": {},
       "pair_whitelist": [
@@ -48,7 +48,6 @@
         "BTT/USDT",
         "VRA/USDT",
         "KSM/USDT",
-        "DASH/USDT",
         "CRO/USDT",
         "DIA/USDT",
         "LINK/USDT",
@@ -64,14 +63,11 @@
         "BTC/USDT",
         "XRP/USDT",
         "VET/USDT",
-        "NEO/USDT",
         "BCH/USDT",
         "KLV/USDT",
-        "DOGE/USDT",
         "MANA/USDT",
         "SAND/USDT",
         "SHIB/USDT",
-        "ICP/USDT",
         "MATIC/USDT",
         "ELON/USDT",
         "NFT/USDT",
@@ -101,43 +97,10 @@
       "remove_pumps": false
     },
     "telegram": {
-    "enabled": true,
-    "token": "7750541631:AAHRRcLY-PLTCbQUcosLQtY8dm2Sq0CbU_w",
-    "chat_id": "1297355532",
-    "keyboard": [
-      [
-        "/daily",
-        "/balance",
-        "/profit",
-        "/start",
-        "/stop"
-      ],
-      [
-        "/status table",
-        "/performance",
-        "/logs"
-      ],
-      [
-        "/stopbuy",
-        "/reload_config"
-      ]
-    ],
-   "notification_settings": {
-      "status": "on",
-      "warning": "on",
-      "startup": "on",
-      "entry": "on",
-      "exit": "on",
-      "entry_cancel": "silent",
-      "exit_cancel": "silent",
-      "entry_fill": "silent",
-      "exit_fill": "silent",
-      "protection_trigger": "on",
-      "protection_trigger_global": "on"
+      "enabled": false,
+      "token": "",
+      "chat_id": ""
     },
-    "reload": true,
-    "balance_dust_level": 0.01
-  },
     "api_server": {
       "enabled": true,
       "listen_ip_address": "0.0.0.0",
