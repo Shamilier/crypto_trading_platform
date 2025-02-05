@@ -2,12 +2,12 @@
   "max_open_trades": 1,
   "stake_currency": "USDT",
   "stake_amount": "unlimited",
-  "available_capital": 101,
+  "available_capital": 250,
   "tradable_balance_ratio": 1.0,
   "fiat_display_currency": "USD",
   "dry_run": false,
   "cancel_open_orders_on_exit": false,
-  "trading_mode": "spot",   
+  "trading_mode": "spot",  
 
     "unfilledtimeout": {
       "entry": 10,
@@ -48,6 +48,7 @@
         "BTT/USDT",
         "VRA/USDT",
         "KSM/USDT",
+        "DASH/USDT",
         "CRO/USDT",
         "DIA/USDT",
         "LINK/USDT",
@@ -63,11 +64,14 @@
         "BTC/USDT",
         "XRP/USDT",
         "VET/USDT",
+        "NEO/USDT",
         "BCH/USDT",
         "KLV/USDT",
+        "DOGE/USDT",
         "MANA/USDT",
         "SAND/USDT",
         "SHIB/USDT",
+        "ICP/USDT",
         "MATIC/USDT",
         "ELON/USDT",
         "NFT/USDT",
@@ -97,10 +101,43 @@
       "remove_pumps": false
     },
     "telegram": {
-      "enabled": false,
-      "token": "",
-      "chat_id": ""
+    "enabled": true,
+    "token": "7750541631:AAHRRcLY-PLTCbQUcosLQtY8dm2Sq0CbU_w",
+    "chat_id": "1297355532",
+    "keyboard": [
+      [
+        "/daily",
+        "/balance",
+        "/profit",
+        "/start",
+        "/stop"
+      ],
+      [
+        "/status table",
+        "/performance",
+        "/logs"
+      ],
+      [
+        "/stopbuy",
+        "/reload_config"
+      ]
+    ],
+   "notification_settings": {
+      "status": "on",
+      "warning": "on",
+      "startup": "on",
+      "entry": "on",
+      "exit": "on",
+      "entry_cancel": "silent",
+      "exit_cancel": "silent",
+      "entry_fill": "silent",
+      "exit_fill": "silent",
+      "protection_trigger": "on",
+      "protection_trigger_global": "on"
     },
+    "reload": true,
+    "balance_dust_level": 0.01
+  },
     "api_server": {
       "enabled": true,
       "listen_ip_address": "0.0.0.0",
@@ -119,4 +156,3 @@
       "process_throttle_secs": 5
     }
   }
-  
