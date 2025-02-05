@@ -2,12 +2,12 @@
   "max_open_trades": 1,
   "stake_currency": "USDT",
   "stake_amount": "unlimited",
-  "available_capital": 1000,
+  "available_capital": 101,
   "tradable_balance_ratio": 1.0,
   "fiat_display_currency": "USD",
   "dry_run": false,
   "cancel_open_orders_on_exit": false,
-  "trading_mode": "spot",  
+  "trading_mode": "spot",   
 
     "unfilledtimeout": {
       "entry": 10,
