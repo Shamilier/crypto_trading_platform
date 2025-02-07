@@ -5,7 +5,7 @@ from tortoise.contrib.pydantic import pydantic_model_creator
 
 class User(Model):
     id = fields.IntField(pk=True)
-    username = fields.CharField(max_length=50, unique=True)
+    username = fields.CharField(max_length=50)
     hashed_password = fields.CharField(max_length=128)
     email = fields.CharField(max_length=255, unique=True)
 

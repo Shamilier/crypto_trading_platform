@@ -17,14 +17,13 @@ async def shutdown():
     
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Разрешить запросы с любых доменов
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=["http://localhost:3000"],  # Указываем точный адрес фронтенда
+    allow_credentials=True,  # Разрешаем куки
+    allow_methods=["*"],  # Разрешаем все методы (GET, POST и т.д.)
+    allow_headers=["*"],  # Разрешаем все заголовки
 )
 
-
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/static", StaticFiles(directory="build/static"), name="static")
 
 SECRET_KEY = "shamil-max"
 

@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from fastapi import Request, HTTPException
 from app.models import RefreshToken
-from app.security import verify_token, create_access_token
+from app.security import verify_access_token, create_access_token
 from fastapi.responses import RedirectResponse
 from app.models import User
 
@@ -14,7 +14,7 @@ async def get_current_user(request: Request):
     if access_token:
         try:
             # Проверка Access токена
-            payload = verify_token(access_token)
+            payload = verify_access_token(access_token)
             logging.info("Access токен валиден")
             username = payload["sub"]
             # Возвращаем объект пользователя
