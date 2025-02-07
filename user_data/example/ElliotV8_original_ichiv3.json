@@ -1,13 +1,13 @@
 {
-  "max_open_trades": -1,
+  "max_open_trades": 1,
   "stake_currency": "USDT",
-  "stake_amount": 235,
-  "available_capital": 487,
+  "stake_amount": "unlimited",
+  "available_capital": 250,
   "tradable_balance_ratio": 1.0,
   "fiat_display_currency": "USD",
   "dry_run": false,
   "cancel_open_orders_on_exit": false,
-  "trading_mode": "spot",
+  "trading_mode": "spot",  
 
     "unfilledtimeout": {
       "entry": 10,
@@ -31,16 +31,15 @@
       "order_book_top": 1
     },
     "exchange": {
-      "name": "bybit",
-      "key": "tEneBlFSbbJz36HAI9",
-      "secret": "u4cqPfGbNtNOxMLWcL4xsE4sm6roZb2Vd33e",
+      "name": "bingx",
+      "key": "Tw9aePMW0Monmam0FPqoIERcgXyE1rNIWe4XzUgNfeNKOBNFILMUSe7JHPbxjWHSZ3e8TlVHB8Dl4PrwgPQ",
+      "secret": "MYwkjUIbI42JzkIwwLB00gk0FpaJDXuvExcdj9hp6TVZYOmua6yACg5BcN82FRnbrrUWVV0hSD8pboQgDA",
       "ccxt_config": {},
       "ccxt_async_config": {},
       "pair_whitelist": [
         
         "XMR/USDT",
         "FTM/USDT",
-        "CHR/USDT",
         "BNB/USDT",
         "ALGO/USDT",
         "XEM/USDT",
@@ -53,7 +52,6 @@
         "CRO/USDT",
         "DIA/USDT",
         "LINK/USDT",
-        "YFI/USDT",
         "UNI/USDT",
         "FIL/USDT",
         "AAVE/USDT",
@@ -73,7 +71,6 @@
         "MANA/USDT",
         "SAND/USDT",
         "SHIB/USDT",
-        "KDA/USDT",
         "ICP/USDT",
         "MATIC/USDT",
         "ELON/USDT",
@@ -104,12 +101,45 @@
       "remove_pumps": false
     },
     "telegram": {
-      "enabled": true,
-      "token": "7701047778:AAFtxvVNdwRvyi6vi6OU4oov6XI2SITNbq8",
-      "chat_id": "1297355532"
+    "enabled": true,
+    "token": "7750541631:AAHRRcLY-PLTCbQUcosLQtY8dm2Sq0CbU_w",
+    "chat_id": "1297355532",
+    "keyboard": [
+      [
+        "/daily",
+        "/balance",
+        "/profit",
+        "/start",
+        "/stop"
+      ],
+      [
+        "/status table",
+        "/performance",
+        "/logs"
+      ],
+      [
+        "/stopbuy",
+        "/reload_config"
+      ]
+    ],
+   "notification_settings": {
+      "status": "on",
+      "warning": "on",
+      "startup": "on",
+      "entry": "on",
+      "exit": "on",
+      "entry_cancel": "silent",
+      "exit_cancel": "silent",
+      "entry_fill": "silent",
+      "exit_fill": "silent",
+      "protection_trigger": "on",
+      "protection_trigger_global": "on"
     },
+    "reload": true,
+    "balance_dust_level": 0.01
+  },
     "api_server": {
-      "enabled": false,
+      "enabled": true,
       "listen_ip_address": "0.0.0.0",
       "listen_port": 8080,
       "verbosity": "error",
@@ -126,4 +156,3 @@
       "process_throttle_secs": 5
     }
   }
-  

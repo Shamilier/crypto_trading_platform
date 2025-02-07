@@ -262,8 +262,8 @@ def update_docker_compose(user_directory, container_name, next_port, strategy_na
         "logging": {
             "driver": "json-file",
             "options": {
-                "max-size": "256m",
-                "max-file": "30"
+                "max-size": "16m",
+                "max-file": "3"
             }
         }
 
