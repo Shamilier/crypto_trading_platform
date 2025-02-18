@@ -93,70 +93,20 @@ async def validate_api_key(exchange_name: str, api_key: str, secret_key: str):
         raise HTTPException(status_code=500, detail="Ошибка при проверке токенов")
 
 
-# Функция для авторизации пользователя.
-async def get_current_user(request: Request):
-    access_token = request.cookies.get("access_token")
-
-    if not access_token:
-        raise HTTPException(status_code=403, detail="Доступ запрещён. Access-токен отсутствует.")
-
-    user_data = verify_access_token(access_token)
-
-    if user_data is None:
-        # Если access_token истёк, пробуем обновить через refresh_token.
-        refresh_token_value = request.cookies.get("refresh_token")
-
-        if not refresh_token_value:
-            raise HTTPException(status_code=403, detail="Доступ запрещён. Refresh-токен отсутствует.")
-
-        refresh_token = await RefreshToken.filter(token=refresh_token_value).first()
-        if not refresh_token:
-            raise HTTPException(status_code=403, detail="Неверный refresh-токен.")
-
-        user = await refresh_token.user
-
-        # Проверяем, истёк ли refresh-токен.
-        if refresh_token.expires_at < datetime.now(timezone.utc):
-            await refresh_token.delete()
-            refresh_token_value = create_refresh_token()
-            expires_at = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
-            await RefreshToken.create(token=refresh_token_value, user=user, expires_at=expires_at)
-
-        # Генерируем новый access_token.
-        new_access_token = create_access_token({"sub": user.email})
-
-        response = JSONResponse({"message": "Токен обновлён, доступ разрешён", "user": user.email})
-        response.set_cookie(
-            key="access_token",
-            value=new_access_token,
-            httponly=False,
-            secure=False
-        )
-
-        return user
-
-    # Проверяем, существует ли пользователь с таким email
-    user = await User.get(email=user_data["sub"])
-    return user
 
 # ------ Routes ------
 
-# Маршрут для отправки React (SPA поддержка).
-@auth_routes.get("/account")
-async def serve_react_app(full_path: str):
-     return FileResponse("build/index.html")
+SPA_ROUTES = [
+    "/",
+    "/login",
+    "/register",
+]
 
-@auth_routes.get("/")
-async def serve_react_app(full_path: str):
-     return FileResponse("build/index.html")
-
-@auth_routes.get("/register")
-async def serve_react_app(full_path: str):
-     return FileResponse("build/index.html")
-
-@auth_routes.get("/login")
-async def serve_react_app(full_path: str):
-     return FileResponse("build/index.html")
+# Отдаём index.html для клиентских маршрутов (SPA).
+for route in SPA_ROUTES:
+    @auth_routes.get(route)
+    async def serve_react_app():
+        return FileResponse("build/index.html")
 
 
 # Register User
@@ -294,6 +244,7 @@ async def get_current_user(request: Request, response: Response):
 
 @auth_routes.get("/api/account")
 async def get_account(request: Request, response: Response, current_user: User = Depends(get_current_user)):
+
     return JSONResponse({"message": "Доступ разрешён", "user": current_user.email})
 
 
