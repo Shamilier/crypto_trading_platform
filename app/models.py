@@ -33,6 +33,7 @@ class Containers(Model):
         
 class ApiKey(Model):
     id = fields.IntField(pk=True)
+    name = fields.TextField()
     user = fields.ForeignKeyField("models.User", related_name="api_keys", on_delete=fields.CASCADE)
     exchange = fields.CharField(max_length=50)
     api_key = fields.TextField()
@@ -66,3 +67,14 @@ class Bot(Model):
 # Pydantic-схемы для Bot
 Bot_Pydantic = pydantic_model_creator(Bot, name="Bot")
 BotIn_Pydantic = pydantic_model_creator(Bot, name="BotIn", exclude_readonly=True)
+
+class OTPCode(Model):
+    id = fields.IntField(pk=True)
+    email = fields.CharField(max_length=255, index=True)  # Email вместо user
+    otp = fields.CharField(max_length=6)  # 6-значный одноразовый пароль
+    expires_at = fields.DatetimeField()  # Время истечения кода
+    created_at = fields.DatetimeField(auto_now_add=True)  # Время создания
+    updated_at = fields.DatetimeField(auto_now=True)
+
+    class Meta:
+        table = "otp_codes"

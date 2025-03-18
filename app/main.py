@@ -24,7 +24,7 @@ app.add_middleware(
     allow_headers=["*"],  # Разрешаем все заголовки
 )
 
-app.mount("/static", StaticFiles(directory="build/static"), name="static")
+app.mount("/assets", StaticFiles(directory="dist/assets"), name="assets")
 
 SECRET_KEY = "shamil-max"
 
