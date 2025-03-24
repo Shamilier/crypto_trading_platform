@@ -150,18 +150,18 @@ async def get_current_user(request: Request, response: Response):
 
 # ------ Routes ------
 
-# SPA_ROUTES = [
-#     "/",
-#     "/login",
-#     "/register",
-#     "/account"
-# ]
+SPA_ROUTES = [
+    "/",
+    "/login",
+    "/register",
+    "/account"
+]
 
-# # Отдаём index.html для клиентских маршрутов (SPA).
-# for route in SPA_ROUTES:
-#     @auth_routes.get(route)
-#     async def serve_react_app():
-#         return FileResponse("dist/index.html")
+# Отдаём index.html для клиентских маршрутов (SPA).
+for route in SPA_ROUTES:
+    @auth_routes.get(route)
+    async def serve_react_app():
+        return FileResponse("dist/index.html")
 
 
 

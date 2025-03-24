@@ -20,6 +20,7 @@ services:
     privileged: true
     networks:
       - my_network
+      - trading-net
     
 
 
@@ -80,4 +81,7 @@ volumes:
 networks:
   my_network:
     driver: bridge
+
+  trading-net:
+    external: true
 

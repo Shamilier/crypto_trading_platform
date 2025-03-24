@@ -3,24 +3,35 @@ from tortoise import BaseDBAsyncClient
 
 async def upgrade(db: BaseDBAsyncClient) -> str:
     return """
-        CREATE TABLE IF NOT EXISTS "otp_codes" (
+        CREATE TABLE IF NOT EXISTS "bots_info" (
     "id" SERIAL NOT NULL PRIMARY KEY,
-    "email" VARCHAR(255) NOT NULL,
+    "name" VARCHAR(255) NOT NULL,
+    "type" VARCHAR(50) NOT NULL,
+    "pnl" DOUBLE PRECISION NOT NULL,
+    "crypto_pairs" TEXT NOT NULL,
+    "description" TEXT NOT NULL,
+    "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS "otp_codes" (
+    "id" SERIAL NOT NULL PRIMARY KEY,
+    "email" VARCHAR(255) NOT NULL UNIQUE,
     "otp" VARCHAR(6) NOT NULL,
     "expires_at" TIMESTAMPTZ NOT NULL,
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
-CREATE INDEX IF NOT EXISTS "idx_otp_codes_email_836cae" ON "otp_codes" ("email");
 CREATE TABLE IF NOT EXISTS "users" (
     "id" SERIAL NOT NULL PRIMARY KEY,
-    "username" VARCHAR(50) NOT NULL,
-    "hashed_password" VARCHAR(128) NOT NULL,
-    "email" VARCHAR(255) NOT NULL UNIQUE
+    "email" VARCHAR(255) NOT NULL UNIQUE,
+    "refresh_token" VARCHAR(255) NOT NULL UNIQUE,
+    "refresh_token_expires_at" TIMESTAMPTZ NOT NULL,
+    "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE IF NOT EXISTS "api_keys" (
     "id" SERIAL NOT NULL PRIMARY KEY,
-    "name" TEXT NOT NULL,
+    "name" VARCHAR(50) NOT NULL,
     "exchange" VARCHAR(50) NOT NULL,
     "api_key" TEXT NOT NULL,
     "secret_key" TEXT NOT NULL,
@@ -31,27 +42,13 @@ CREATE TABLE IF NOT EXISTS "api_keys" (
 CREATE TABLE IF NOT EXISTS "bots" (
     "id" SERIAL NOT NULL PRIMARY KEY,
     "name" VARCHAR(255) NOT NULL,
-    "strategy" VARCHAR(255) NOT NULL,
+    "password" VARCHAR(255) NOT NULL,
     "status" VARCHAR(50) NOT NULL DEFAULT 'inactive',
-    "balance_used" DOUBLE PRECISION NOT NULL DEFAULT 0,
-    "indicators" JSONB NOT NULL,
-    "profit" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "available_capital" DOUBLE PRECISION NOT NULL,
+    "is_dry_run" BOOL NOT NULL,
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "user_id" INT NOT NULL REFERENCES "users" ("id") ON DELETE CASCADE
-);
-CREATE TABLE IF NOT EXISTS "containers" (
-    "id" SERIAL NOT NULL PRIMARY KEY,
-    "container_id" VARCHAR(255) NOT NULL,
-    "port" INT NOT NULL,
-    "status" VARCHAR(50) NOT NULL DEFAULT 'running',
-    "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "user_id" INT NOT NULL REFERENCES "users" ("id") ON DELETE CASCADE
-);
-CREATE TABLE IF NOT EXISTS "refreshtoken" (
-    "id" SERIAL NOT NULL PRIMARY KEY,
-    "token" VARCHAR(255) NOT NULL UNIQUE,
-    "expires_at" TIMESTAMPTZ NOT NULL,
+    "api_key_id" INT NOT NULL REFERENCES "api_keys" ("id") ON DELETE CASCADE,
     "user_id" INT NOT NULL REFERENCES "users" ("id") ON DELETE CASCADE
 );
 CREATE TABLE IF NOT EXISTS "aerich" (
