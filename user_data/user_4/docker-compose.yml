@@ -1,0 +1,20 @@
+version: '3.8'
+services:
+  placeholder:
+    image: scratch
+    container_name: user_4_placeholder
+  freqtrade_user_4_strategy_E0V1E:
+    image: freqtradeorg/freqtrade:stable
+    container_name: freqtrade_user_4_strategy_E0V1E
+    restart: unless-stopped
+    volumes:
+    - ./user_data/user_4:/freqtrade/user_data
+    ports:
+    - 3001:8888
+    command: trade --db-url sqlite:////freqtrade/user_data/trades.sqlite --config
+      /freqtrade/user_data/E0V1E.json --strategy E0V1E
+    logging:
+      driver: json-file
+      options:
+        max-size: 16m
+        max-file: '3'

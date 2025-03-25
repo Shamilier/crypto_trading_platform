@@ -445,9 +445,10 @@ async def get_balance(request: Request, response: Response, api_key_id: int, use
 
 # Api (Защищенный путь).
 # Добавление стратегии к пользователю.
-@auth_routes.post("/api/add_strategy")
-async def add_strategy(request: Request, response: Response, strategy_name: str = Form(...), user: User = Depends(get_current_user)):
+@auth_routes.post("/api/add-strategy")
+async def add_strategy(request: Request, response: Response, strategy_name: str = Form(...), deposit: str = Form(...), api_key_name: str = Form(...), is_dry_run: bool = Form(...),  user: User = Depends(get_current_user)):
     # Передаём ID пользователя и название стратегии в Celery задачу
+    logging.error(f"add_strategy_to_container 1")
     result = add_strategy_to_container.delay(user.id, strategy_name)
     response_data = {"message": "Бот успешно добавлен"}
     return JSONResponse(content=response_data, headers=response.headers, status_code=200)

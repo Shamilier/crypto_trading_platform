@@ -11,6 +11,7 @@ from app.models import Bot  # Импорт модели Bot
 import subprocess
 import shutil
 import yaml
+import logging
 
 
 
@@ -55,10 +56,10 @@ def copy_to_container(container, source_path, target_path):
 # Функция для получения следующего доступного порта
 async def get_next_available_port():
     # sourcery skip: assign-if-exp, reintroduce-else
-    last_container = await Containers.all().order_by('-port').first()
+    # last_container = await Containers.all().order_by('-port').first()
     # if last_container:
     #     return last_container.port + 1
-    return 3001 + (last_container.port + 1)  # Начинаем с порта 3000
+    return 3001  # Начинаем с порта 3000
 
 
 def run_sync(func):
@@ -136,6 +137,7 @@ def run_docker_compose(user_directory):
 
 @celery.task
 def add_strategy_to_container(user_id, strategy_name):
+    logging.error(f"add_strategy_to_container 2")
     """Добавляет стратегию в контейнер пользователя"""
     return run_sync(_add_strategy_to_container(user_id, strategy_name))
 
@@ -144,6 +146,7 @@ async def _add_strategy_to_container(user_id, strategy_name):
     """Асинхронная функция для добавления стратегии с созданием нового контейнера, но без запуска"""
     await init_db()
     try:
+        logging.error(f"add_strategy_to_container 3")
         # Основная логика добавления стратегии
         user_directory = f"./user_data/user_{user_id}"
         strategy_directory = os.path.join(user_directory, "strategies")
@@ -180,27 +183,27 @@ async def _add_strategy_to_container(user_id, strategy_name):
         copy_to_container(container, user_directory, "/freqtrade/user_data")
 
         # Сохраняем информацию о новом контейнере в базе данных
-        await Containers.create(
-            user_id=user_id,
-            container_id=container_name,
-            port=next_port,
-            status="created"  # Контейнер создан, но не запущен
-        )
+        # await Containers.create(
+        #     user_id=user_id,
+        #     container_id=container_name,
+        #     port=next_port,
+        #     status="created"  # Контейнер создан, но не запущен
+        # )
 
         # Сохраняем информацию о стратегии
-        await Bot.create(
-            user_id=user_id,
-            name=strategy_name,
-            strategy=strategy_name,
-            status="inactive",  # Статус стратегии: неактивна
-            balance_used=-1.0,
-            indicators=["-"],
-            profit=0.0,
-        )
+        # await Bot.create(
+        #     user_id=user_id,
+        #     name=strategy_name,
+        #     strategy=strategy_name,
+        #     status="inactive",  # Статус стратегии: неактивна
+        #     balance_used=-1.0,
+        #     indicators=["-"],
+        #     profit=0.0,
+        # )
 
         return f"Strategy {strategy_name} successfully added and container {container_name} created."
     except Exception as e:
-        return f"Error occurred: {str(e)}"
+        raise Exception(f"Error occurred: {str(e)}")
     finally:
         await close_db()
 
@@ -288,7 +291,8 @@ async def _start_user_strategy(user_id, bot_name, strategy_name):
     await init_db()
     try:
         # Получаем информацию о контейнере стратегии
-        container_info = await Containers.filter(user_id=user_id, container_id=f"freqtrade_user_{user_id}_strategy_{strategy_name}").first()
+        # container_info = await Containers.filter(user_id=user_id, container_id=f"freqtrade_user_{user_id}_strategy_{strategy_name}").first()
+        container_info = None
         if not container_info:
             return f"Error: Container for strategy {strategy_name} not found."
 
@@ -335,7 +339,8 @@ async def _stop_user_bot(user_id, strategy_name):
     try:
         # Получаем информацию о контейнере стратегии
 
-        container_info = await Containers.filter(user_id=user_id, container_id=f"freqtrade_user_{user_id}_strategy_{strategy_name}").first()
+        # container_info = await Containers.filter(user_id=user_id, container_id=f"freqtrade_user_{user_id}_strategy_{strategy_name}").first()
+        container_info = None
         if not container_info:
             return f"Error: Container for strategy {strategy_name} not found."
         container_name = container_info.container_id
