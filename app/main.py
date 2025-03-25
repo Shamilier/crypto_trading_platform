@@ -4,6 +4,12 @@ from .database import init, close
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
+import os
+
+
+
+load_dotenv()
 
 app = FastAPI()
 
@@ -26,10 +32,8 @@ app.add_middleware(
 
 app.mount("/assets", StaticFiles(directory="dist/assets"), name="assets")
 
-SECRET_KEY = "shamil-max"
-
 app.include_router(auth_routes)
-app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
+app.add_middleware(SessionMiddleware, secret_key=os.getenv('SECRET_KEY'))
 
 
 @app.on_event("shutdown")

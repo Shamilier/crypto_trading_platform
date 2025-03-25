@@ -1,7 +1,10 @@
 import os
 from tortoise import Tortoise
+from dotenv import load_dotenv
 
-DATABASE_URL = "postgres://postgres:password@db:5432/trading_db"
+load_dotenv()
+
+DATABASE_URL = f"postgres://{os.getenv('POSTGRES_USER')}:{os.getenv('POSTGRES_PASSWORD')}@db:5432/trading_db"
 
 TORTOISE_ORM = {
     "connections": {

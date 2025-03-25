@@ -20,4 +20,3 @@ asyncpg
 aiohttp
 tomlkit
 tomli
-

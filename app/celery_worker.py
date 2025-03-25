@@ -12,8 +12,9 @@ import subprocess
 import shutil
 import yaml
 import logging
+from dotenv import load_dotenv
 
-
+load_dotenv()
 
 celery = Celery(
     'crypto_trading_app',
@@ -25,7 +26,7 @@ client = docker.from_env()
 
 async def init_db():
     await Tortoise.init(
-        db_url='postgres://postgres:password@db:5432/trading_db',
+        db_url=f"postgres://{os.getenv('POSTGRES_USER')}:{os.getenv('POSTGRES_PASSWORD')}@db:5432/trading_db",
         modules={'models': ['app.models']}
     )
     await Tortoise.generate_schemas()

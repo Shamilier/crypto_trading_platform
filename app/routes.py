@@ -21,13 +21,12 @@ from cryptography.fernet import Fernet
 print(Fernet.generate_key().decode())
 import logging
 import base64
+import os
 
 logging.basicConfig(level=logging.DEBUG)
 
 
-
-REFRESH_TOKEN_EXPIRE_DAYS = 1
-
+load_dotenv()
 auth_routes = APIRouter()
 
 
@@ -137,7 +136,7 @@ async def get_current_user(request: Request, response: Response):
     # Обновляем refresh токен.
     new_refresh_token = create_refresh_token()
     user.refresh_token = new_refresh_token
-    user.refresh_token_expires_at = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    user.refresh_token_expires_at = datetime.utcnow() + timedelta(days=int(os.getenv('REFRESH_TOKEN_EXPIRE_DAYS')))
     await user.save()
 
     # Устанавливаем новые токены.
@@ -202,7 +201,7 @@ async def send_message(request: Request, email: str = Form(...), csrf_token: str
     }
 
     headers = {
-        "Authorization": "WDOAWlyUpMbaj8LQGflYPgMAzAqv6cxRGbhs"
+        "Authorization": os.getenv('SMTP_KEY')
     }
 
     # Отправляем запрос в SMTP API
@@ -249,7 +248,7 @@ async def check_otp(request: Request, email: str = Form(...), otp: str = Form(..
 
     access_token = create_access_token(data={"sub": email})
     refresh_token = create_refresh_token()
-    refresh_token_expires_at = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    refresh_token_expires_at = datetime.utcnow() + timedelta(days=int(os.getenv('REFRESH_TOKEN_EXPIRE_DAYS')))
 
     if not user:
         user = await User.create(email=email, refresh_token=refresh_token, refresh_token_expires_at=refresh_token_expires_at)
