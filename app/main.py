@@ -17,14 +17,14 @@ async def shutdown():
     
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Разрешить запросы с любых доменов
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    # allow_origins=["http://localhost:3000"],  # Указываем точный адрес фронтенда
+    allow_origins=["*"],
+    allow_credentials=True,  # Разрешаем куки
+    allow_methods=["*"],  # Разрешаем все методы (GET, POST и т.д.)
+    allow_headers=["*"],  # Разрешаем все заголовки
 )
 
-
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/assets", StaticFiles(directory="dist/assets"), name="assets")
 
 SECRET_KEY = "shamil-max"
 
@@ -35,7 +35,3 @@ app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
 @app.on_event("shutdown")
 async def shutdown():
     await close()
-
-@app.get("/")
-async def read_root():
-    return {"message": "Welcome to Crypto Trading Platform!"}

@@ -4,13 +4,14 @@ import tarfile
 from io import BytesIO
 from celery import Celery
 from tortoise.transactions import in_transaction
-from app.models import Containers  # Импорт модели Containers
+
 from tortoise import Tortoise
 import asyncio
 from app.models import Bot  # Импорт модели Bot
 import subprocess
 import shutil
 import yaml
+import logging
 
 
 
@@ -55,9 +56,9 @@ def copy_to_container(container, source_path, target_path):
 # Функция для получения следующего доступного порта
 async def get_next_available_port():
     # sourcery skip: assign-if-exp, reintroduce-else
-    last_container = await Containers.all().order_by('-port').first()
-    if last_container:
-        return last_container.port + 1
+    # last_container = await Containers.all().order_by('-port').first()
+    # if last_container:
+    #     return last_container.port + 1
     return 3001  # Начинаем с порта 3000
 
 
@@ -83,9 +84,9 @@ async def _create_freqtrade_container(user_id):
     try:
         async with in_transaction():
             # Проверяем, существует ли уже контейнер для пользователя
-            existing_container = await Containers.filter(user_id=user_id).first()
-            if existing_container:
-                return f"Container for user {user_id} already exists."
+            # existing_container = await Containers.filter(user_id=user_id).first()
+            # if existing_container:
+            #     return f"Container for user {user_id} already exists."
 
             user_directory = f"./user_data/user_{user_id}"
 
@@ -104,13 +105,13 @@ async def _create_freqtrade_container(user_id):
             container_name = f"user_{user_id}_placeholder"
 
             # Сохраняем информацию о контейнере в базе данных
-            await Containers.create(
-                user_id=user_id,
-                container_id=container_name,
-                port=0,  # Заглушка не использует порт
+            # await Containers.create(
+            #     user_id=user_id,
+            #     container_id=container_name,
+            #     port=0,  # Заглушка не использует порт
 
-                status="registered"  # Статус: зарегистрирован, но не запущен
-            )
+            #     status="registered"  # Статус: зарегистрирован, но не запущен
+            # )
 
             return f"Project for user {user_id} successfully registered with placeholder container."
     finally:
@@ -136,6 +137,7 @@ def run_docker_compose(user_directory):
 
 @celery.task
 def add_strategy_to_container(user_id, strategy_name):
+    logging.error(f"add_strategy_to_container 2")
     """Добавляет стратегию в контейнер пользователя"""
     return run_sync(_add_strategy_to_container(user_id, strategy_name))
 
@@ -144,6 +146,7 @@ async def _add_strategy_to_container(user_id, strategy_name):
     """Асинхронная функция для добавления стратегии с созданием нового контейнера, но без запуска"""
     await init_db()
     try:
+        logging.error(f"add_strategy_to_container 3")
         # Основная логика добавления стратегии
         user_directory = f"./user_data/user_{user_id}"
         strategy_directory = os.path.join(user_directory, "strategies")
@@ -180,27 +183,27 @@ async def _add_strategy_to_container(user_id, strategy_name):
         copy_to_container(container, user_directory, "/freqtrade/user_data")
 
         # Сохраняем информацию о новом контейнере в базе данных
-        await Containers.create(
-            user_id=user_id,
-            container_id=container_name,
-            port=next_port,
-            status="created"  # Контейнер создан, но не запущен
-        )
+        # await Containers.create(
+        #     user_id=user_id,
+        #     container_id=container_name,
+        #     port=next_port,
+        #     status="created"  # Контейнер создан, но не запущен
+        # )
 
         # Сохраняем информацию о стратегии
-        await Bot.create(
-            user_id=user_id,
-            name=strategy_name,
-            strategy=strategy_name,
-            status="inactive",  # Статус стратегии: неактивна
-            balance_used=-1.0,
-            indicators=["-"],
-            profit=0.0,
-        )
+        # await Bot.create(
+        #     user_id=user_id,
+        #     name=strategy_name,
+        #     strategy=strategy_name,
+        #     status="inactive",  # Статус стратегии: неактивна
+        #     balance_used=-1.0,
+        #     indicators=["-"],
+        #     profit=0.0,
+        # )
 
         return f"Strategy {strategy_name} successfully added and container {container_name} created."
     except Exception as e:
-        return f"Error occurred: {str(e)}"
+        raise Exception(f"Error occurred: {str(e)}")
     finally:
         await close_db()
 
@@ -256,7 +259,7 @@ def update_docker_compose(user_directory, container_name, next_port, strategy_na
             f"{user_directory}:/freqtrade/user_data"
         ],
         "ports": [
-            f"{next_port}"
+            f"{next_port}:8888"
         ],
         "command": f"trade --db-url sqlite:////freqtrade/user_data/trades.sqlite --config /freqtrade/user_data/{strategy_name}.json --strategy {strategy_name}",
         "logging": {
@@ -288,7 +291,8 @@ async def _start_user_strategy(user_id, bot_name, strategy_name):
     await init_db()
     try:
         # Получаем информацию о контейнере стратегии
-        container_info = await Containers.filter(user_id=user_id, container_id=f"freqtrade_user_{user_id}_strategy_{strategy_name}").first()
+        # container_info = await Containers.filter(user_id=user_id, container_id=f"freqtrade_user_{user_id}_strategy_{strategy_name}").first()
+        container_info = None
         if not container_info:
             return f"Error: Container for strategy {strategy_name} not found."
 
@@ -335,7 +339,8 @@ async def _stop_user_bot(user_id, strategy_name):
     try:
         # Получаем информацию о контейнере стратегии
 
-        container_info = await Containers.filter(user_id=user_id, container_id=f"freqtrade_user_{user_id}_strategy_{strategy_name}").first()
+        # container_info = await Containers.filter(user_id=user_id, container_id=f"freqtrade_user_{user_id}_strategy_{strategy_name}").first()
+        container_info = None
         if not container_info:
             return f"Error: Container for strategy {strategy_name} not found."
         container_name = container_info.container_id

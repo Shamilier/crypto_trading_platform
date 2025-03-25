@@ -1,38 +1,24 @@
 from tortoise import fields
 from tortoise.models import Model
-from tortoise.contrib.pydantic import pydantic_model_creator
 
 
+
+# Пользователь.
 class User(Model):
     id = fields.IntField(pk=True)
-    username = fields.CharField(max_length=50, unique=True)
-    hashed_password = fields.CharField(max_length=128)
     email = fields.CharField(max_length=255, unique=True)
+    refresh_token = fields.CharField(max_length=255, unique=True)
+    refresh_token_expires_at = fields.DatetimeField()
+    created_at = fields.DatetimeField(auto_now_add=True)
+    updated_at = fields.DatetimeField(auto_now=True)
 
     class Meta:
         table = "users"
 
-
-class RefreshToken(Model):
-    id = fields.IntField(pk=True)
-    token = fields.CharField(max_length=255, unique=True)
-    user = fields.ForeignKeyField("models.User", related_name="refresh_tokens")
-    expires_at = fields.DatetimeField()
-
-
-class Containers(Model):
-    id = fields.IntField(pk=True)
-    user = fields.ForeignKeyField("models.User", related_name="containers")
-    container_id = fields.CharField(max_length=255)
-    port = fields.IntField()
-    status = fields.CharField(max_length=50, default="running")
-    created_at = fields.DatetimeField(auto_now_add=True)
-
-    class Meta:
-        table = "containers"
-        
+# Api ключ.
 class ApiKey(Model):
     id = fields.IntField(pk=True)
+    name = fields.CharField(max_length=50)
     user = fields.ForeignKeyField("models.User", related_name="api_keys", on_delete=fields.CASCADE)
     exchange = fields.CharField(max_length=50)
     api_key = fields.TextField()
@@ -43,26 +29,44 @@ class ApiKey(Model):
     class Meta:
         table = "api_keys"
 
-# Pydantic-схемы для ApiKey
-ApiKey_Pydantic = pydantic_model_creator(ApiKey, name="ApiKey")
-ApiKeyIn_Pydantic = pydantic_model_creator(ApiKey, name="ApiKeyIn", exclude_readonly=True)
-
-
+# Бот.
 class Bot(Model):
-    id = fields.IntField(pk=True)  # Уникальный идентификатор бота
-    user = fields.ForeignKeyField("models.User", related_name="bots", on_delete=fields.CASCADE)  # Ссылка на пользователя
-    name = fields.CharField(max_length=255)  # Название бота
-    strategy = fields.CharField(max_length=255)  # Стратегия, используемая ботом
+    id = fields.IntField(pk=True)
+    name = fields.CharField(max_length=255)  # Название бота (для freqtrade api)
+    password = fields.CharField(max_length=255) # Пароль (для freqtrade api)
     status = fields.CharField(max_length=50, default="inactive")  # Статус бота (активен/неактивен и т.д.)
-    balance_used = fields.FloatField(default=0.0)  # Используемый баланс (по дефолту 0)
-    indicators = fields.JSONField(default=[])  # Индикаторы (по дефолту пустой список)
-    profit = fields.FloatField(default=0.0)  # Прибыль (по дефолту 0)
-    created_at = fields.DatetimeField(auto_now_add=True)  # Дата и время создания
-    updated_at = fields.DatetimeField(auto_now=True)  # Дата и время последнего обновления
+    available_capital = fields.FloatField() # Доступный капитал.
+    is_dry_run = fields.BooleanField() # Демо или реальный запуск.
+    user = fields.ForeignKeyField("models.User", related_name="bots", on_delete=fields.CASCADE)
+    api_key = fields.ForeignKeyField("models.ApiKey", related_name="bots", on_delete=fields.CASCADE) #TODO подумать про это поле
+    created_at = fields.DatetimeField(auto_now_add=True)
+    updated_at = fields.DatetimeField(auto_now=True)
 
     class Meta:
         table = "bots"
 
-# Pydantic-схемы для Bot
-Bot_Pydantic = pydantic_model_creator(Bot, name="Bot")
-BotIn_Pydantic = pydantic_model_creator(Bot, name="BotIn", exclude_readonly=True)
+# Одноразовый пароль для проверки email.
+class OTPCode(Model):
+    id = fields.IntField(pk=True)
+    email = fields.CharField(max_length=255, unique=True)
+    otp = fields.CharField(max_length=6)  # 6-значный одноразовый пароль
+    expires_at = fields.DatetimeField()
+    created_at = fields.DatetimeField(auto_now_add=True)
+    updated_at = fields.DatetimeField(auto_now=True)
+
+    class Meta:
+        table = "otp_codes"
+
+# Информация о ботах (для каталога).
+class BotInfo(Model):
+    id = fields.IntField(pk=True)
+    name = fields.CharField(max_length=255) 
+    type = fields.CharField(max_length=50) # Spot/Futures.
+    pnl = fields.FloatField() # PNL в год.
+    crypto_pairs = fields.TextField() # Криптовалютные пары.
+    description = fields.TextField() # Описание.
+    created_at = fields.DatetimeField(auto_now_add=True)
+    updated_at = fields.DatetimeField(auto_now=True)
+
+    class Meta:
+        table = "bots_info"

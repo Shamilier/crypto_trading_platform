@@ -17,4 +17,7 @@ python-dotenv
 asgiref
 pyyaml
 asyncpg
+aiohttp
+tomlkit
+tomli
 
