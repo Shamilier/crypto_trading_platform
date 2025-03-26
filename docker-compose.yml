@@ -1,27 +1,51 @@
 version: '3.8'
 services:
 
+  traefik:
+    image: traefik:v2.9
+    container_name: traefik_proxy
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.myresolver.acme.httpchallenge=true"
+      - "--certificatesresolvers.myresolver.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.myresolver.acme.email=max.bugakov28@gmail.com"
+      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./letsencrypt:/letsencrypt"
+    networks:
+      - my_network
+    restart: always
 
   app:
     build: .
     container_name: crypto_trading_app
-    ports:
-      - "80:8000"
+
     volumes:
       - .:/app
       - /var/run/docker.sock:/var/run/docker.sock
       - ./user_data:/app_user_data
-  # Монтирование данных пользователей
     depends_on:
       - db
       - redis
     environment:
       - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/trading_db
     privileged: true
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.app.rule=Host(`eazy-trade.ru`)"
+      - "traefik.http.routers.app.entrypoints=web,websecure"
+      - "traefik.http.routers.app.tls.certresolver=myresolver"
+      - "traefik.http.services.app.loadbalancer.server.port=8000"
     networks:
       - my_network
-    
-
+    restart: always
 
   db:
     image: postgres:13
@@ -37,6 +61,7 @@ services:
     privileged: true
     networks:
       - my_network
+    restart: always
 
   pgadmin:
     image: dpage/pgadmin4
@@ -65,13 +90,13 @@ services:
     privileged: true
     networks:
       - my_network
-
+    restart: always
 
   redis:
     image: redis:alpine
     networks:
       - my_network
-
+    restart: always
 
 volumes:
   postgres_data:
@@ -79,4 +104,3 @@ volumes:
 networks:
   my_network:
     driver: bridge
-
