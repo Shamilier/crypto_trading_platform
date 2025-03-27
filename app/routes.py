@@ -27,6 +27,7 @@ import uuid
 from yookassa import Configuration
 from yookassa import Payment as yookassa_payment
 from pydantic import BaseModel
+import ipaddress
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -354,32 +355,67 @@ class YooKassaNotification(BaseModel):
     object: Payment
 
 
+# Допустимые отдельные IP-адреса
+ALLOWED_IPS = [
+    "77.75.156.11",
+    "77.75.156.35"
+]
+
+# Допустимые подсети
+ALLOWED_NETWORKS = [
+    ipaddress.ip_network("185.71.76.0/27"),
+    ipaddress.ip_network("185.71.77.0/27"),
+    ipaddress.ip_network("77.75.153.0/25"),
+    ipaddress.ip_network("77.75.154.128/25"),
+    ipaddress.ip_network("2a02:5180::/32"),
+]
+
+def is_ip_allowed(ip: str) -> bool:
+    try:
+        ip_addr = ipaddress.ip_address(ip)
+    except ValueError:
+        return False
+    # Проверка по отдельным IP
+    if ip in ALLOWED_IPS:
+        return True
+    # Проверка по подсетям
+    for net in ALLOWED_NETWORKS:
+        if ip_addr in net:
+            return True
+    return False
+
+
 @auth_routes.post("/webhook/yookassa")
 async def yookassa_webhook(request: Request):
+
+    client_ip = request.client.host
+    if not is_ip_allowed(client_ip):
+        raise HTTPException(status_code=403, detail="IP not allowed")
+    
     try:
         data = await request.json()
         notification = YooKassaNotification.parse_obj(data)
-        # Логирование распарсенных данных для отладки
-        # Например, можно вывести type, event и id платежа:
+        
         logging.error(f"Type: {notification.type}")
         logging.error(f"Event: {notification.event}")
         logging.error(f"Payment ID: {notification.object.id}")
 
         if (notification.event == "payment.succeeded"):
             payment_model = await PaymentModel.filter(yookassa_id=notification.object.id).first()
-            payment_model.paid = True
-            await payment_model.save()
+            if (payment_model.paid == False):
+                payment_model.paid = True
+                await payment_model.save()
 
-            user = payment_model.user
-            user.subscription_expires_at = datetime.utcnow() + timedelta(days=30)
-            if (user.is_trial):
-                user.is_trial = False
-            await user.save()
-            
+                await payment_model.fetch_related("user")
+                user = payment_model.user
+                user.subscription_expires_at = datetime.utcnow() + timedelta(days=30)
+                if (user.is_trial):
+                    user.is_trial = False
+                await user.save()
+
     except Exception as e:
-        logging.error("Неверный формат данных: " + str(e))
-    
-    # Здесь можно добавить логику обработки уведомления
+        logging.error("YooKassa webhook exception: " + str(e))
+        
     return {"status": "ok"}
 
 
@@ -389,29 +425,35 @@ async def yookassa_webhook(request: Request):
 @auth_routes.get("/api/get-pay-link")
 async def get_account(request: Request, response: Response, current_user: User = Depends(get_current_user)):
 
-    Configuration.account_id = 1057743
-    Configuration.secret_key = "test_M8iblkoDjnJpxrPmP2CbwGM9L3dAWfIGvmlVx4xq6YI"
+    if (current_user.subscription_expires_at > datetime.now(timezone.utc)):
+        if (current_user.is_trial == False):
+            raise HTTPException(status_code=400, headers=response.headers, detail="Ваша подписка ещё действительна")
+        
+    Configuration.account_id = os.getenv('YOOKASSA_SHOP_ID')
+    Configuration.secret_key = os.getenv('YOOKASSA_SECRET_KEY')
 
-    #try:
-    idempotence_key  = str(uuid.uuid4())
-    payment = yookassa_payment.create({
-                "amount": {
-                    "value": "100.00",
-                    "currency": "RUB"
-                },
-                "confirmation": {
-                    "type": "redirect",
-                    "return_url": "https://eazy-trade.ru/account",
-                },
-                "capture": True,
-                "description": "Заказ №1"
-            }, idempotence_key )
-    response_data = {"confirmation_url": payment.confirmation.confirmation_url}
-    await PaymentModel.create(user=current_user, yookassa_id=payment.id, paid=False)
-    return JSONResponse(content=response_data, headers=response.headers, status_code=200)
-    # except Exception as e:
-    #     logging.error("get-pay-link" + str(e))
-    #     raise HTTPException(status_code=500, headers=response.headers, detail="Ошибка при проверке токенов")
+    try:
+        idempotence_key  = str(uuid.uuid4())
+        payment = yookassa_payment.create({
+                    "amount": {
+                        "value": "100.00",
+                        "currency": "RUB"
+                    },
+                    "confirmation": {
+                        "type": "redirect",
+                        "return_url": "https://eazy-trade.ru/account",
+                    },
+                    "capture": True,
+                    "description": "Заказ №1"
+                }, idempotence_key )
+        
+        await PaymentModel.create(user=current_user, yookassa_id=payment.id, paid=False)
+
+        response_data = {"confirmation_url": payment.confirmation.confirmation_url}
+        return JSONResponse(content=response_data, headers=response.headers, status_code=200)
+    except Exception as e:
+        logging.error("get-pay-link error" + str(e))
+        raise HTTPException(status_code=500, headers=response.headers, detail="Ошибка при формировании payment")
    
 
 
