@@ -22,6 +22,8 @@ print(Fernet.generate_key().decode())
 import logging
 import base64
 import os
+import uuid
+from yookassa import Configuration, Payment
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -251,7 +253,11 @@ async def check_otp(request: Request, email: str = Form(...), otp: str = Form(..
     refresh_token_expires_at = datetime.utcnow() + timedelta(days=int(os.getenv('REFRESH_TOKEN_EXPIRE_DAYS')))
 
     if not user:
-        user = await User.create(email=email, refresh_token=refresh_token, refresh_token_expires_at=refresh_token_expires_at)
+        user = await User.create(email=email,
+                                refresh_token=refresh_token,
+                                refresh_token_expires_at=refresh_token_expires_at,
+                                is_trial = True,
+                                subscription_expires_at = datetime.utcnow() + timedelta(days=2))
     else:
         user.refresh_token = refresh_token
         user.refresh_token_expires_at = refresh_token_expires_at
@@ -313,6 +319,61 @@ async def get_account(request: Request, response: Response, current_user: User =
 async def get_account(request: Request, response: Response, current_user: User = Depends(get_current_user)):
     response_data = {"email": current_user.email}
     return JSONResponse(content=response_data, headers=response.headers, status_code=200)
+
+
+
+
+
+# Api (Защищенный путь).
+# Получение данных о подписке пользователя.
+@auth_routes.get("/api/get-subscription")
+async def get_account(request: Request, response: Response, current_user: User = Depends(get_current_user)):
+    response_data = {"subscription_expires_at": current_user.subscription_expires_at.strftime("%H:%M %d.%m.%Y"),
+                     "is_trial": current_user.is_trial}
+    return JSONResponse(content=response_data, headers=response.headers, status_code=200)
+
+
+
+@auth_routes.post("/webhook/yookassa")
+async def yookassa_webhook(request: Request):
+    # Получаем JSON-данные
+    data = await request.json()
+    logging.error(str(data))
+    return {"status": "ok"}
+
+
+
+
+
+# Api (Защищенный путь).
+# Получение данных о подписке пользователя.
+@auth_routes.get("/api/get-pay-link")
+async def get_account(request: Request, response: Response, current_user: User = Depends(get_current_user)):
+
+    Configuration.account_id = 1057743
+    Configuration.secret_key = "test_M8iblkoDjnJpxrPmP2CbwGM9L3dAWfIGvmlVx4xq6YI"
+
+    try:
+        payment = Payment.create({
+                "amount": {
+                    "value": "100.00",
+                    "currency": "RUB"
+                },
+                "confirmation": {
+                    "type": "redirect",
+                    "return_url": "https://eazy-trade.ru/account",
+                },
+                "capture": True,
+                "description": "Заказ №1"
+            }, uuid.uuid4())
+        response_data = {"confirmation_url": payment.confirmation.confirmation_url}
+        return JSONResponse(content=response_data, headers=response.headers, status_code=200)
+    except (Exception):
+        raise HTTPException(status_code=500, headers=response.headers, detail="Ошибка при проверке токенов")
+   
+
+
+
 
 
 

@@ -9,6 +9,8 @@ class User(Model):
     email = fields.CharField(max_length=255, unique=True)
     refresh_token = fields.CharField(max_length=255, unique=True)
     refresh_token_expires_at = fields.DatetimeField()
+    is_trial = fields.BooleanField()
+    subscription_expires_at = fields.DatetimeField()
     created_at = fields.DatetimeField(auto_now_add=True)
     updated_at = fields.DatetimeField(auto_now=True)
 

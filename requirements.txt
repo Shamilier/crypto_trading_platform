@@ -20,3 +20,4 @@ asyncpg
 aiohttp
 tomlkit
 tomli
+yookassa
