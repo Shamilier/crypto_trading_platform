@@ -7,6 +7,7 @@ from fastapi import APIRouter, Request, Form, Depends, HTTPException, status, Re
 from tortoise.transactions import in_transaction
 from passlib.hash import bcrypt
 from app.models import User, ApiKey, Bot, OTPCode, BotInfo
+from app.models import Payment as PaymentModel
 import random
 import string
 import aiohttp
@@ -23,7 +24,9 @@ import logging
 import base64
 import os
 import uuid
-from yookassa import Configuration, Payment
+from yookassa import Configuration
+from yookassa import Payment as yookassa_payment
+from pydantic import BaseModel
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -334,14 +337,39 @@ async def get_account(request: Request, response: Response, current_user: User =
 
 
 
+class Amount(BaseModel):
+    value: str
+    currency: str
+
+class Payment(BaseModel):
+    id: str
+    status: str
+    amount: Amount
+    created_at: str
+    paid: bool
+    
+class YooKassaNotification(BaseModel):
+    type: str
+    event: str
+    object: Payment
+
+
 @auth_routes.post("/webhook/yookassa")
 async def yookassa_webhook(request: Request):
-    # Получаем JSON-данные
-    data = await request.json()
-    logging.error(str(data))
+    try:
+        data = await request.json()
+        notification = YooKassaNotification.parse_obj(data)
+    except Exception as e:
+        logging.error("Неверный формат данных: " + str(e))
+    
+    # Логирование распарсенных данных для отладки
+    # Например, можно вывести type, event и id платежа:
+    logging.error(f"Type: {notification.type}")
+    logging.error(f"Event: {notification.event}")
+    logging.error(f"Payment ID: {notification.object.id}")
+    
+    # Здесь можно добавить логику обработки уведомления
     return {"status": "ok"}
-
-
 
 
 
@@ -353,8 +381,9 @@ async def get_account(request: Request, response: Response, current_user: User =
     Configuration.account_id = 1057743
     Configuration.secret_key = "test_M8iblkoDjnJpxrPmP2CbwGM9L3dAWfIGvmlVx4xq6YI"
 
-    try:
-        payment = Payment.create({
+    #try:
+    idempotence_key  = str(uuid.uuid4())
+    payment = yookassa_payment.create({
                 "amount": {
                     "value": "100.00",
                     "currency": "RUB"
@@ -365,11 +394,13 @@ async def get_account(request: Request, response: Response, current_user: User =
                 },
                 "capture": True,
                 "description": "Заказ №1"
-            }, uuid.uuid4())
-        response_data = {"confirmation_url": payment.confirmation.confirmation_url}
-        return JSONResponse(content=response_data, headers=response.headers, status_code=200)
-    except (Exception):
-        raise HTTPException(status_code=500, headers=response.headers, detail="Ошибка при проверке токенов")
+            }, idempotence_key )
+    response_data = {"confirmation_url": payment.confirmation.confirmation_url}
+    await PaymentModel.create(user=current_user, yookassa_id=payment.id, paid=False)
+    return JSONResponse(content=response_data, headers=response.headers, status_code=200)
+    # except Exception as e:
+    #     logging.error("get-pay-link" + str(e))
+    #     raise HTTPException(status_code=500, headers=response.headers, detail="Ошибка при проверке токенов")
    
 
 
