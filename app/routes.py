@@ -359,14 +359,25 @@ async def yookassa_webhook(request: Request):
     try:
         data = await request.json()
         notification = YooKassaNotification.parse_obj(data)
+        # Логирование распарсенных данных для отладки
+        # Например, можно вывести type, event и id платежа:
+        logging.error(f"Type: {notification.type}")
+        logging.error(f"Event: {notification.event}")
+        logging.error(f"Payment ID: {notification.object.id}")
+
+        if (notification.event == "payment.succeeded"):
+            payment_model = await PaymentModel.filter(yookassa_id=notification.object.id).first()
+            payment_model.paid = True
+            await payment_model.save()
+
+            user = payment_model.user
+            user.subscription_expires_at = datetime.utcnow() + timedelta(days=30)
+            if (user.is_trial):
+                user.is_trial = False
+            await user.save()
+            
     except Exception as e:
         logging.error("Неверный формат данных: " + str(e))
-    
-    # Логирование распарсенных данных для отладки
-    # Например, можно вывести type, event и id платежа:
-    logging.error(f"Type: {notification.type}")
-    logging.error(f"Event: {notification.event}")
-    logging.error(f"Payment ID: {notification.object.id}")
     
     # Здесь можно добавить логику обработки уведомления
     return {"status": "ok"}
