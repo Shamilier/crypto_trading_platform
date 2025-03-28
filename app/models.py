@@ -41,6 +41,8 @@ class Bot(Model):
     api_key = fields.ForeignKeyField("models.ApiKey", related_name="bots", on_delete=fields.CASCADE) #TODO подумать про это поле
     created_at = fields.DatetimeField(auto_now_add=True)
     updated_at = fields.DatetimeField(auto_now=True)
+    port = fields.IntField()
+    container_id = fields.CharField(max_length=255)
 
     class Meta:
         table = "bots"

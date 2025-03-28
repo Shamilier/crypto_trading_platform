@@ -2,7 +2,6 @@
   "max_open_trades": 1,
   "stake_currency": "USDT",
   "stake_amount": "unlimited",
-  "available_capital": 198,
   "tradable_balance_ratio": 1.0,
   "fiat_display_currency": "USD",
   "dry_run": true,
@@ -140,19 +139,9 @@
     "reload": true,
     "balance_dust_level": 0.01
   },
-  "api_server": {
-    "enabled": true,
-    "listen_ip_address": "0.0.0.0",
-    "listen_port": 8888,  
-    "verbosity": "error",
-    "jwt_secret_key": "",
-    "ws_token": "",
-    "CORS_origins": [],
-    "username": "freqtrader",
-    "password": "freqtrader"
-  },
+
   "bot_name": "freqtrade",
-  "initial_state": "running",
+  "initial_state": "stopped",
   "force_entry_enable": false,
   "internals": {
     "process_throttle_secs": 5

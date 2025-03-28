@@ -16,11 +16,13 @@ from datetime import datetime, timedelta, timezone
 import secrets
 from app.security import *
 from tortoise.exceptions import IntegrityError, DoesNotExist
-from app.celery_worker import create_freqtrade_container, add_strategy_to_container, start_user_strategy, stop_user_bot
+from app.celery_worker import create_freqtrade_container, add_strategy_to_container, start_user_strategy
 from cryptography.fernet import Fernet
 print(Fernet.generate_key().decode())
 import logging
 import base64
+import time
+from freqtrade_client import FtRestClient
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -92,7 +94,8 @@ async def validate_api_key(exchange_name: str, api_key: str, secret_key: str):
 
 def generate_one_time_password(length=6):
     """Генерирует одноразовый пароль из случайных цифр."""
-    return ''.join(random.choices(string.digits, k=length))
+    # return ''.join(random.choices(string.digits, k=length))
+    return 620074
 
 
 
@@ -183,34 +186,34 @@ async def send_message(request: Request, email: str = Form(...), csrf_token: str
     await OTPCode.filter(email=email).delete()
     otp_entry = await OTPCode.create(email=email, otp=generate_one_time_password(), expires_at=datetime.utcnow() + timedelta(minutes=1))
 
-    # Формируем HTML-письмо
-    email_body = f"""
-    <html>
-    <body>
-        <h1>Одноразовый пароль</h1>
-        <p>Ваш код для входа: <strong>{otp_entry.otp}</strong></p>
-    </body>
-    </html>
-    """
+    # # Формируем HTML-письмо
+    # email_body = f"""
+    # <html>
+    # <body>
+    #     <h1>Одноразовый пароль</h1>
+    #     <p>Ваш код для входа: <strong>{otp_entry.otp}</strong></p>
+    # </body>
+    # </html>
+    # """
 
-    # Подготавливаем данные для отправки запроса
-    email_data = {
-        "from": "info@eazy-trade.ru",
-        "subject": "Вход Eazy Trade",
-        "to": email,
-        "html": email_body,
-    }
+    # # Подготавливаем данные для отправки запроса
+    # email_data = {
+    #     "from": "info@eazy-trade.ru",
+    #     "subject": "Вход Eazy Trade",
+    #     "to": email,
+    #     "html": email_body,
+    # }
 
-    headers = {
-        "Authorization": "WDOAWlyUpMbaj8LQGflYPgMAzAqv6cxRGbhs"
-    }
+    # headers = {
+    #     "Authorization": "WDOAWlyUpMbaj8LQGflYPgMAzAqv6cxRGbhs"
+    # }
 
-    # Отправляем запрос в SMTP API
-    async with aiohttp.ClientSession() as session:
-        async with session.post("https://api.smtp.bz/v1/smtp/send", json=email_data, headers=headers) as response:
-            if response.status != 200:
-                logging.error(f"Ошибка отправки письма: {await response.text()}")
-                raise HTTPException(status_code=500, detail="Ошибка при отправке письма")
+    # # Отправляем запрос в SMTP API
+    # async with aiohttp.ClientSession() as session:
+    #     async with session.post("https://api.smtp.bz/v1/smtp/send", json=email_data, headers=headers) as response:
+    #         if response.status != 200:
+    #             logging.error(f"Ошибка отправки письма: {await response.text()}")
+    #             raise HTTPException(status_code=500, detail="Ошибка при отправке письма")
 
     return JSONResponse({"message": "Одноразовый пароль отправлен на email"}, status_code=200)
 
@@ -253,6 +256,11 @@ async def check_otp(request: Request, email: str = Form(...), otp: str = Form(..
 
     if not user:
         user = await User.create(email=email, refresh_token=refresh_token, refresh_token_expires_at=refresh_token_expires_at)
+
+        
+        user_directory = create_user_directory(user.id)
+        create_yml = create_user_compose_yml(user.id)
+        create_freqtrade_container.delay(user.id)
     else:
         user.refresh_token = refresh_token
         user.refresh_token_expires_at = refresh_token_expires_at
@@ -291,12 +299,6 @@ async def get_csrf_token(request: Request):
 async def get_account(request: Request, response: Response, current_user: User = Depends(get_current_user)):
 
     user_id = current_user.id
-    existing_bots = await current_user.fetch_related("bots")
-    
-    if not existing_bots:
-        user_directory = create_user_directory(user_id)
-        create_yml = create_user_compose_yml(user_id)
-        create_freqtrade_container.delay(user_id)
     
     # Добавляем JSON-контент в response, НЕ создавая новый объект.
     # Это нужно, чтобы обновлять токены в куках (если это требуется).
@@ -448,8 +450,8 @@ async def get_balance(request: Request, response: Response, api_key_id: int, use
 @auth_routes.post("/api/add-strategy")
 async def add_strategy(request: Request, response: Response, strategy_name: str = Form(...), deposit: str = Form(...), api_key_name: str = Form(...), is_dry_run: bool = Form(...),  user: User = Depends(get_current_user)):
     # Передаём ID пользователя и название стратегии в Celery задачу
-    logging.error(f"add_strategy_to_container 1")
-    result = add_strategy_to_container.delay(user.id, strategy_name)
+    # api_key_FK = await ApiKey.filter(name=api_key_name, user = user).first()
+    result = add_strategy_to_container.delay(user.id, strategy_name, deposit, api_key_name, is_dry_run)
     response_data = {"message": "Бот успешно добавлен"}
     return JSONResponse(content=response_data, headers=response.headers, status_code=200)
 
@@ -463,7 +465,7 @@ async def add_strategy(request: Request, response: Response, strategy_name: str 
 async def get_user_strategies(request: Request, response: Response, user: User = Depends(get_current_user)):
         
     # Получаем список ботов текущего пользователя
-    bots = await Bot.filter(user=user)
+    bots = await Bot.filter(user=user).prefetch_related("api_key")
 
     # Формируем список словарей с данными о ботах
     bots_list = [
@@ -485,30 +487,39 @@ async def get_user_strategies(request: Request, response: Response, user: User =
 
 
 
+# @auth_routes.get("/api/get-bot-ping/{get_command}")
+# async def start_bot(request: Request, response: Response, get_command: str, user: User = Depends(get_current_user)):
+#     container_host = "172.18.0.1"
+#     port = 8888
+#     username = "freqtrader"
+#     password = "freqtrader"
+
+#     auth_string = f"{username}:{password}"
+#     b64_auth = base64.b64encode(auth_string.encode()).decode()
+
+#     headers = {
+#         "Authorization": f"Basic {b64_auth}"
+#     }
+
+#     url = f"http://{container_host}:{port}/api/v1/{get_command}"
+
+#     async with aiohttp.ClientSession() as session:
+#         async with session.get(url, headers=headers) as resp:
+#             if resp.status != 200:
+#                 logging.error(f"Ошибка отправки письма: {await resp.text()}")
+#                 raise HTTPException(status_code=500, detail="Ошибка при отправке письма")
+#             else:
+#                 data = await resp.json()
+#                 return JSONResponse({"data": f"{data}"}, status_code=200)
+
 @auth_routes.get("/api/get-bot-ping/{get_command}")
-async def start_bot(request: Request, response: Response, get_command: str, user: User = Depends(get_current_user)):
-    container_host = "freqtrade_user_1_strategy_E0V1E"  # имя контейнера в сети Docker
-    port = 8888
-    username = "freqtrader"
-    password = "freqtrader"
-
-    auth_string = f"{username}:{password}"
-    b64_auth = base64.b64encode(auth_string.encode()).decode()
-
-    headers = {
-        "Authorization": f"Basic {b64_auth}"
-    }
-
-    url = f"http://{container_host}:{port}/api/v1/{get_command}"
-
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url, headers=headers) as resp:
-            if resp.status != 200:
-                logging.error(f"Ошибка отправки письма: {await resp.text()}")
-                raise HTTPException(status_code=500, detail="Ошибка при отправке письма")
-            else:
-                data = await resp.json()
-                return JSONResponse({"data": f"{data}"}, status_code=200)
+async def ping_pong_bro(request: Request, response: Response, get_command: str):
+    client = FtRestClient("http://host.docker.internal:3000", "1", "1")
+    exchange_class = getattr(client, get_command.lower())
+    # Get the status of the bot
+    ping = exchange_class()
+    print(ping)
+    return {"info": ping}
             
 
 
@@ -519,21 +530,11 @@ async def start_bot(request: Request, response: Response, get_command: str, user
 # Запуск бота.
 @auth_routes.post("/api/start-bot")
 async def start_bot(request: Request, response: Response, bot_name: str = Form(...), strategy_name: str = Form(...), user: User = Depends(get_current_user)):
-    task = start_user_strategy.delay(user.id, bot_name, strategy_name)
+    print(bot_name, strategy_name, user.id)
+    task = start_user_strategy.delay(user.id , bot_name, strategy_name)
     return {"message": f"Task to start bot {bot_name} with strategy {strategy_name} created.", "task_id": task.id}
 
 
 
 
 
-# Api (Защищенный путь).
-# Остановка бота.
-@auth_routes.post("/stop-bot/{bot_id}")
-async def stop_bot(bot_id: int, user: User = Depends(get_current_user)):
-    # Получаем стратегию по bot_id
-    bot = await Bot.filter(id=bot_id, user=user).first()
-    if not bot:
-        return {"error": "Bot not found or does not belong to the user."}
-
-    task = stop_user_bot.delay(user.id, bot.strategy)
-    return {"message": f"Task to stop bot {bot_id} with strategy {bot.strategy} created.", "task_id": task.id}

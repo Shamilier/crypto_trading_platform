@@ -20,4 +20,5 @@ asyncpg
 aiohttp
 tomlkit
 tomli
+freqtrade_client
 
