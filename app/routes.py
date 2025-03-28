@@ -388,9 +388,9 @@ def is_ip_allowed(ip: str) -> bool:
 @auth_routes.post("/webhook/yookassa")
 async def yookassa_webhook(request: Request):
 
-    client_ip = request.client.host
-    if not is_ip_allowed(client_ip):
-        raise HTTPException(status_code=403, detail="IP not allowed")
+    # client_ip = request.client.host
+    # if not is_ip_allowed(client_ip):
+    #     raise HTTPException(status_code=403, detail="IP not allowed")
     
     try:
         data = await request.json()
