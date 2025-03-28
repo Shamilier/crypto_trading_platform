@@ -17,7 +17,7 @@ from datetime import datetime, timedelta, timezone
 import secrets
 from app.security import *
 from tortoise.exceptions import IntegrityError, DoesNotExist
-from app.celery_worker import create_freqtrade_container, add_strategy_to_container, start_user_strategy, stop_user_bot
+from app.celery_worker import create_freqtrade_container, add_strategy_to_container, start_user_strategy
 from cryptography.fernet import Fernet
 print(Fernet.generate_key().decode())
 import logging
@@ -591,12 +591,10 @@ async def get_balance(request: Request, response: Response, api_key_id: int, use
 # Добавление стратегии к пользователю.
 @auth_routes.post("/api/add-strategy")
 async def add_strategy(request: Request, response: Response, strategy_name: str = Form(...), deposit: str = Form(...), api_key_name: str = Form(...), is_dry_run: bool = Form(...),  user: User = Depends(get_current_user)):
-    # Передаём ID пользователя и название стратегии в Celery задачу
-    logging.error(f"add_strategy_to_container 1")
-    result = add_strategy_to_container.delay(user.id, strategy_name)
+    # api_key_FK = await ApiKey.filter(name=api_key_name, user = user).first()
+    result = add_strategy_to_container.delay(user.id, strategy_name, deposit, api_key_name, is_dry_run)
     response_data = {"message": "Бот успешно добавлен"}
     return JSONResponse(content=response_data, headers=response.headers, status_code=200)
-
 
 
 
@@ -607,8 +605,7 @@ async def add_strategy(request: Request, response: Response, strategy_name: str 
 async def get_user_strategies(request: Request, response: Response, user: User = Depends(get_current_user)):
         
     # Получаем список ботов текущего пользователя
-    bots = await Bot.filter(user=user)
-
+    bots = await Bot.filter(user=user).prefetch_related("api_key")
     # Формируем список словарей с данными о ботах
     bots_list = [
         {
@@ -629,55 +626,9 @@ async def get_user_strategies(request: Request, response: Response, user: User =
 
 
 
-@auth_routes.get("/api/get-bot-ping/{get_command}")
-async def start_bot(request: Request, response: Response, get_command: str, user: User = Depends(get_current_user)):
-    container_host = "freqtrade_user_1_strategy_E0V1E"  # имя контейнера в сети Docker
-    port = 8888
-    username = "freqtrader"
-    password = "freqtrader"
-
-    auth_string = f"{username}:{password}"
-    b64_auth = base64.b64encode(auth_string.encode()).decode()
-
-    headers = {
-        "Authorization": f"Basic {b64_auth}"
-    }
-
-    url = f"http://{container_host}:{port}/api/v1/{get_command}"
-
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url, headers=headers) as resp:
-            if resp.status != 200:
-                logging.error(f"Ошибка отправки письма: {await resp.text()}")
-                raise HTTPException(status_code=500, detail="Ошибка при отправке письма")
-            else:
-                data = await resp.json()
-                return JSONResponse({"data": f"{data}"}, status_code=200)
-            
-
-
-
-
-
 # Api (Защищенный путь).
 # Запуск бота.
 @auth_routes.post("/api/start-bot")
 async def start_bot(request: Request, response: Response, bot_name: str = Form(...), strategy_name: str = Form(...), user: User = Depends(get_current_user)):
     task = start_user_strategy.delay(user.id, bot_name, strategy_name)
     return {"message": f"Task to start bot {bot_name} with strategy {strategy_name} created.", "task_id": task.id}
-
-
-
-
-
-# Api (Защищенный путь).
-# Остановка бота.
-@auth_routes.post("/stop-bot/{bot_id}")
-async def stop_bot(bot_id: int, user: User = Depends(get_current_user)):
-    # Получаем стратегию по bot_id
-    bot = await Bot.filter(id=bot_id, user=user).first()
-    if not bot:
-        return {"error": "Bot not found or does not belong to the user."}
-
-    task = stop_user_bot.delay(user.id, bot.strategy)
-    return {"message": f"Task to stop bot {bot_id} with strategy {bot.strategy} created.", "task_id": task.id}

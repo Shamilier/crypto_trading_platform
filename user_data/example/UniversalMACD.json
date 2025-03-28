@@ -120,7 +120,7 @@
       "password": ""
     },
     "bot_name": "",
-    "initial_state": "running",
+    "initial_state": "stopped",
     "force_entry_enable": false,
     "internals": {
       "process_throttle_secs": 5

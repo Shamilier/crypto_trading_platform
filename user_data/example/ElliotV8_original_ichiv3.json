@@ -101,7 +101,7 @@
       "remove_pumps": false
     },
     "telegram": {
-    "enabled": true,
+    "enabled": false,
     "token": "7750541631:AAHRRcLY-PLTCbQUcosLQtY8dm2Sq0CbU_w",
     "chat_id": "1297355532",
     "keyboard": [
@@ -150,7 +150,7 @@
       "password": ""
     },
     "bot_name": "",
-    "initial_state": "running",
+    "initial_state": "stopped",
     "force_entry_enable": false,
     "internals": {
       "process_throttle_secs": 5

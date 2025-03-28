@@ -53,6 +53,8 @@ class Bot(Model):
     is_dry_run = fields.BooleanField() # Демо или реальный запуск.
     user = fields.ForeignKeyField("models.User", related_name="bots", on_delete=fields.CASCADE)
     api_key = fields.ForeignKeyField("models.ApiKey", related_name="bots", on_delete=fields.CASCADE) #TODO подумать про это поле
+    port = fields.IntField()
+    container_id = fields.CharField(max_length=255)
     created_at = fields.DatetimeField(auto_now_add=True)
     updated_at = fields.DatetimeField(auto_now=True)
 

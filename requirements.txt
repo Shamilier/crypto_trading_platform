@@ -21,3 +21,4 @@ aiohttp
 tomlkit
 tomli
 yookassa
+freqtrade_client
