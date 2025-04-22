@@ -146,6 +146,7 @@
       "enable_openapi": false,
       "jwt_secret_key": "556ebba5770ae3a07e80eda0f0f2b55df102896f8a5b86459c3433c1314345c4",
       "CORS_origins": [],
+      "ws_token": "hZ-y58LXyX_HZ8O1cJzVyN6ePWrLpNQv4Q", 
       "username": "",
       "password": ""
     },

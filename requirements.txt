@@ -22,3 +22,4 @@ tomlkit
 tomli
 yookassa
 freqtrade_client
+aiofiles

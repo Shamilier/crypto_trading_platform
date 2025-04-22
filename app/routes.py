@@ -6,19 +6,22 @@ from fastapi import HTTPException
 from fastapi import APIRouter, Request, Form, Depends, HTTPException, status, Response
 from tortoise.transactions import in_transaction
 from passlib.hash import bcrypt
-from app.models import User, ApiKey, Bot, OTPCode, BotInfo
+from app.models import User, ApiKey, Bot, OTPCode, BotInfo, BotInfo, DailyBreakdown, Trade
 from app.models import Payment as PaymentModel
 import random
 import string
 import aiohttp
-
+from fastapi import Query
 from fastapi.responses import FileResponse, JSONResponse
 from app.security import create_access_token, verify_access_token
 from datetime import datetime, timedelta, timezone
 import secrets
 from app.security import *
 from tortoise.exceptions import IntegrityError, DoesNotExist
-from app.celery_worker import create_freqtrade_container, add_strategy_to_container, start_user_strategy
+from app.celery_worker import create_freqtrade_container, add_strategy_to_container, \
+    start_user_strategy, stop_user_strategy, get_bot_whitelist, celery, get_pair_history, \
+        get_trades, force_exit_market, get_history, get_bot_balance
+
 from cryptography.fernet import Fernet
 print(Fernet.generate_key().decode())
 import logging
@@ -29,6 +32,16 @@ from yookassa import Configuration
 from yookassa import Payment as yookassa_payment
 from pydantic import BaseModel
 import ipaddress
+from celery.result import AsyncResult
+import aiofiles
+from pathlib import Path
+import json
+from tortoise.functions import Sum, Count
+from decimal import Decimal
+from tortoise.expressions import Q
+from datetime import datetime, time, timezone
+
+
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -98,7 +111,8 @@ async def validate_api_key(exchange_name: str, api_key: str, secret_key: str):
 
 def generate_one_time_password(length=6):
     """Генерирует одноразовый пароль из случайных цифр."""
-    return ''.join(random.choices(string.digits, k=length))
+    # return ''.join(random.choices(string.digits, k=length))
+    return 666666
 
 
 
@@ -189,34 +203,34 @@ async def send_message(request: Request, email: str = Form(...), csrf_token: str
     await OTPCode.filter(email=email).delete()
     otp_entry = await OTPCode.create(email=email, otp=generate_one_time_password(), expires_at=datetime.utcnow() + timedelta(minutes=1))
 
-    # Формируем HTML-письмо
-    email_body = f"""
-    <html>
-    <body>
-        <h1>Одноразовый пароль</h1>
-        <p>Ваш код для входа: <strong>{otp_entry.otp}</strong></p>
-    </body>
-    </html>
-    """
+    # # Формируем HTML-письмо
+    # email_body = f"""
+    # <html>
+    # <body>
+    #     <h1>Одноразовый пароль</h1>
+    #     <p>Ваш код для входа: <strong>{otp_entry.otp}</strong></p>
+    # </body>
+    # </html>
+    # """
 
-    # Подготавливаем данные для отправки запроса
-    email_data = {
-        "from": "info@eazy-trade.ru",
-        "subject": "Вход Eazy Trade",
-        "to": email,
-        "html": email_body,
-    }
+    # # Подготавливаем данные для отправки запроса
+    # email_data = {
+    #     "from": "info@eazy-trade.ru",
+    #     "subject": "Вход Eazy Trade",
+    #     "to": email,
+    #     "html": email_body,
+    # }
 
-    headers = {
-        "Authorization": os.getenv('SMTP_KEY')
-    }
+    # headers = {
+    #     "Authorization": os.getenv('SMTP_KEY')
+    # }
 
-    # Отправляем запрос в SMTP API
-    async with aiohttp.ClientSession() as session:
-        async with session.post("https://api.smtp.bz/v1/smtp/send", json=email_data, headers=headers) as response:
-            if response.status != 200:
-                logging.error(f"Ошибка отправки письма: {await response.text()}")
-                raise HTTPException(status_code=500, detail="Ошибка при отправке письма")
+    # # Отправляем запрос в SMTP API
+    # async with aiohttp.ClientSession() as session:
+    #     async with session.post("https://api.smtp.bz/v1/smtp/send", json=email_data, headers=headers) as response:
+    #         if response.status != 200:
+    #             logging.error(f"Ошибка отправки письма: {await response.text()}")
+    #             raise HTTPException(status_code=500, detail="Ошибка при отправке письма")
 
     return JSONResponse({"message": "Одноразовый пароль отправлен на email"}, status_code=200)
 
@@ -284,11 +298,13 @@ async def check_otp(request: Request, email: str = Form(...), otp: str = Form(..
 async def get_csrf_token(request: Request):
     csrf_token = generate_csrf_token()
     response = JSONResponse({"message": "CSRF токен создан"}, status_code=200)
+    print(response)
     response.set_cookie(key="csrf_token",
                         value=csrf_token,
                         httponly=False, # False, чтобы в js коде можно было достать.
                         secure=False, # При деплое поменят на True.
                         )
+    print(response)
     return response
 
 
@@ -447,7 +463,6 @@ async def get_account(request: Request, response: Response, current_user: User =
                     "capture": True,
                     "description": "Заказ №1"
                 }, idempotence_key )
-        
         await PaymentModel.create(user=current_user, yookassa_id=payment.id, paid=False)
 
         response_data = {"confirmation_url": payment.confirmation.confirmation_url}
@@ -612,6 +627,7 @@ async def get_user_strategies(request: Request, response: Response, user: User =
         {
             "id": bot.id,
             "name": bot.name,
+            "strategy":bot.name,
             "status": bot.status,
             "available_capital": bot.available_capital,
             "is_dry_run": bot.is_dry_run,
@@ -633,3 +649,299 @@ async def get_user_strategies(request: Request, response: Response, user: User =
 async def start_bot(request: Request, response: Response, bot_name: str = Form(...), strategy_name: str = Form(...), user: User = Depends(get_current_user)):
     task = start_user_strategy.delay(user.id, bot_name, strategy_name)
     return {"message": f"Task to start bot {bot_name} with strategy {strategy_name} created.", "task_id": task.id}
+
+
+@auth_routes.post("/api/stop-bot")
+async def stop_bot(request: Request, response: Response, bot_name: str = Form(...), strategy_name: str = Form(...), user: User = Depends(get_current_user)):
+    task = stop_user_strategy.delay(user.id, bot_name, strategy_name)
+    return {"message": f"Task to stop bot {bot_name} with strategy {strategy_name} created.", "task_id": task.id}
+
+@auth_routes.post("/api/get-whitelist")
+async def get_whitelist(
+    request: Request,
+    bot_name: str = Form(...),
+    user: User = Depends(get_current_user)
+):
+    task = get_bot_whitelist.delay(user.id, bot_name)
+    return {
+        "message": f"Task to get bot whitelist for bot {bot_name} created.",
+        "task_id": task.id
+    }
+
+@auth_routes.post("/api/get-pair-history")
+async def get_whitelist(
+    request: Request,
+    bot_name: str = Form(...),
+    pair: str = Form(...),
+    timeframe: str = Form(...),
+    strategy: str = Form(...),
+    timerange: str = Form(...),
+    user: User = Depends(get_current_user)
+):
+    task = get_pair_history.delay(user.id, bot_name, pair, timeframe, strategy, timerange)
+    return {
+        "message": f"Task to get_pair_history for bot {bot_name}, pair {pair} created.",
+        "task_id": task.id
+    }
+
+@auth_routes.post("/api/get-trades")
+async def get_trades_(
+    request: Request,
+    bot_name: str = Form(...),
+    user: User = Depends(get_current_user)
+):
+    task = get_trades.delay(user.id, bot_name)
+    return {
+        "message": f"Task to get_pair_history for bot {bot_name} created.",
+        "task_id": task.id
+    }
+
+@auth_routes.post("/api/get-history")
+async def get_trades_(
+    request: Request,
+    bot_name: str = Form(...),
+    user: User = Depends(get_current_user)
+):
+    task = get_history.delay(user.id, bot_name)
+    return {
+        "message": f"Task to get_pair_history for bot {bot_name} created.",
+        "task_id": task.id
+    }
+
+@auth_routes.post("/api/get-bot-balance")
+async def get_balance_(
+    request: Request,
+    bot_name: str = Form(...),
+    user: User = Depends(get_current_user)
+):
+    task = get_bot_balance.delay(user.id, bot_name)
+    return {
+        "message": f"Task to get_bot_balance for bot {bot_name} created.",
+        "task_id": task.id
+    }
+
+
+@auth_routes.post("/api/forceexit-market")
+async def exit_market(
+    request: Request,
+    bot_name: str = Form(...),
+    trade_id: int = Form(...),
+    user: User = Depends(get_current_user)
+):
+    print(f"Сука задача forceexit параметры {bot_name}, {trade_id}, {user} ")
+    task = force_exit_market.delay(user.id, bot_name, trade_id)
+    return{
+        "message": f"Task to force_exit_market for bot {bot_name}, trade id {trade_id} created.",
+        "task_id": task.id
+    }
+    
+
+@auth_routes.get("/api/task-status/{task_id}")
+async def get_task_status(task_id: str):
+    task_result = AsyncResult(task_id, app=celery)
+
+    if task_result.state == "PENDING":
+        return {"state": "PENDING"}
+    elif task_result.state == "SUCCESS":
+        # Возвращаем значение, которое вернула Celery-задача
+        return {"state": "SUCCESS", "result": task_result.result}
+    elif task_result.state == "FAILURE":
+        # Можно дополнительно вернуть str(task_result.traceback) или task_result.info
+        return {"state": "FAILURE", "error": str(task_result.info)}
+    else:
+        # Для STARTED, RETRY и др.
+        return {"state": task_result.state}
+
+
+
+
+@auth_routes.get("/api/bot-info")
+async def get_bot_info(
+    request: Request,
+    bot_name: str = Query(...),  # <- заменили Form на Query
+    user: User = Depends(get_current_user)
+):
+    bot = await Bot.filter(user=user, name=bot_name).prefetch_related("api_key").first()
+    if not bot:
+        raise HTTPException(status_code=404, detail="Бот не найден")
+
+    return {
+        "botInfo": {
+            "name": bot.name,
+            "mode": "spot",
+            "apiKey": bot.api_key.name if bot.api_key else None,
+            "launchDate": bot.created_at.strftime("%Y-%m-%d") if bot.created_at else None,
+            "status": bot.status,
+            "initialDeposit": bot.available_capital,
+        }
+    }
+
+
+
+@auth_routes.post("/api/run-backtest")
+async def run_backtest(
+    bot_name   : str   = Form(...),
+    start_date : str   = Form(...),     # yyyy-mm-dd
+    end_date   : str   = Form(...),
+    depo       : float = Form(...),
+    user       : User  = Depends(get_current_user)
+):
+    depo = 100
+    # ─── 1. валидация диапазона ────────────────────────────────────
+    start_dt = datetime.combine(
+        datetime.strptime(start_date, "%Y-%m-%d").date(),
+        time.min, tzinfo=timezone.utc
+    )
+    end_dt   = datetime.combine(
+        datetime.strptime(end_date, "%Y-%m-%d").date(),
+        time.max, tzinfo=timezone.utc
+    )
+
+    bot = await BotInfo.get_or_none(name=bot_name)
+    if not bot:
+        return {"error": f"Стратегия “{bot_name}” не найдена"}
+
+    # ─── 2. забираем нужные сделки ─────────────────────────────────
+    trades_qs = (
+        Trade
+        .filter(bot_info=bot, open_date__gte=start_dt, open_date__lte=end_dt)
+        .order_by("close_date")                           # важно для equity
+        .values(
+            "id", "pair", "profit_abs", "open_date",
+            "close_date", "trade_duration"
+        )
+    )
+    trades = await trades_qs
+
+    if not trades:
+        return {"error": "В указанном диапазоне сделок нет"}
+
+    # ─── 3. сводные цифры (profit, trades, win‑rate …) ─────────────
+    total_profit = sum(t["profit_abs"] for t in trades)
+    wins         = sum(1 for t in trades if t["profit_abs"] > 0)
+    losses       = sum(1 for t in trades if t["profit_abs"] < 0)
+    total_trades = len(trades)
+
+    profit_factor = (
+        sum(t["profit_abs"] for t in trades if t["profit_abs"] > 0) /
+        abs(sum(t["profit_abs"] for t in trades if t["profit_abs"] < 0))
+    ) if losses else None
+
+    roi_pct = round((total_profit / Decimal(depo) * 100), 2) if depo else None
+    win_rate = round(wins / total_trades * 100, 2)
+
+    avg_duration = round(
+        sum(t["trade_duration"] for t in trades) / total_trades, 1
+    )
+
+    # ─── 4. equity‑curve + drawdown ────────────────────────────────
+    equity_curve = []
+    equity       = Decimal(depo)
+    peak         = equity
+    dd_curve     = []
+
+    for t in trades:
+        equity += t["profit_abs"]
+        equity_curve.append({
+            "t": t["close_date"].isoformat(),
+            "eq": float(equity)
+        })
+        if equity > peak:
+            peak = equity
+        drawdown_pct = float((equity - peak) / peak * 100)
+        dd_curve.append({"t": t["close_date"].isoformat(), "dd": round(drawdown_pct, 2)})
+
+    max_drawdown = round(min(d["dd"] for d in dd_curve), 2)
+
+    # ─── 5. P/L по парам ───────────────────────────────────────────
+    pair_pnl = {}
+    for t in trades:
+        pair_pnl.setdefault(t["pair"], Decimal("0"))
+        pair_pnl[t["pair"]] += t["profit_abs"]
+
+    pair_pnl_list = [
+        {"pair": p, "pnl": float(v)} for p, v in pair_pnl.items()
+    ]
+
+    # ─── 6. Top‑5 best / worst сделки ──────────────────────────────
+    sorted_trades = sorted(trades, key=lambda x: x["profit_abs"], reverse=True)
+    best_5  = [ {**t, "profit_abs": float(t["profit_abs"])} for t in sorted_trades[:5] ]
+    worst_5 = [ {**t, "profit_abs": float(t["profit_abs"])} for t in sorted_trades[-5:] ]
+
+    # ─── 7. ответ ──────────────────────────────────────────────────
+    return {
+        "summary": {
+            "net_profit"   : float(total_profit),
+            "roi_pct"      : roi_pct,
+            "trades"       : total_trades,
+            "wins_pct"     : win_rate,
+            "profit_factor": round(profit_factor, 2) if profit_factor else None,
+            "max_dd_pct"   : max_drawdown,
+            "avg_dur_min"  : avg_duration,
+        },
+        "equity"    : equity_curve,
+        "drawdown"  : dd_curve,
+        "pair_pnl"  : pair_pnl_list,
+        "top": {
+            "best": best_5,
+            "worst": worst_5
+        }
+    }
+
+
+@auth_routes.get("/api/backtest-trades")
+async def backtest_trades(
+    bot_name: str,
+    start_date: str,   # yyyy‑mm‑dd
+    end_date: str,     # yyyy‑mm‑dd
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    user: User = Depends(get_current_user),
+):
+    # Парсим даты, добавляем таймштампы
+    start_dt = datetime.combine(
+        datetime.strptime(start_date, "%Y-%m-%d").date(),
+        time.min, tzinfo=timezone.utc
+    )
+    end_dt = datetime.combine(
+        datetime.strptime(end_date, "%Y-%m-%d").date(),
+        time.max, tzinfo=timezone.utc
+    )
+
+    bot = await BotInfo.get_or_none(name=bot_name)
+    if not bot:
+        return JSONResponse(status_code=404, content={"error": "Стратегия не найдена"})
+
+    qs = Trade.filter(
+        bot_info=bot,
+        open_date__gte=start_dt,
+        open_date__lte=end_dt
+    ).order_by("-open_date")
+
+    total = await qs.count()
+    offset = (page - 1) * page_size
+    items = await qs.offset(offset).limit(page_size).values(
+        "id",
+        "pair",
+        "profit_abs",
+        "profit_ratio",
+        "open_date",
+        "close_date",
+        "is_short",
+        "trade_duration",
+    )
+
+    # форматируем даты в миллисекунды
+    for t in items:
+        t["open_ts"] = int(t["open_date"].timestamp() * 1000)
+        t["close_ts"] = int(t["close_date"].timestamp() * 1000)
+        # Profit % как число
+        t["profit_pct"] = float(Decimal(t["profit_ratio"]) * 100)
+
+    return {
+        "items": items,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": (total + page_size - 1) // page_size,
+    }

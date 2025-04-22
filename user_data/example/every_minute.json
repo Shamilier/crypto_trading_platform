@@ -1,0 +1,116 @@
+{
+    "max_open_trades": 1,
+    "stake_currency": "USDT",
+    "stake_amount": "unlimited",
+    "available_capital": 250,
+    "tradable_balance_ratio": 1.0,
+    "fiat_display_currency": "USD",
+    "dry_run": false,
+    "cancel_open_orders_on_exit": false,
+    "trading_mode": "spot",  
+  
+      "unfilledtimeout": {
+        "entry": 10,
+        "exit": 10,
+        "exit_timeout_count": 0,
+        "unit": "minutes"
+      },
+      "entry_pricing": {
+        "price_side": "same",
+        "use_order_book": true,
+        "order_book_top": 1,
+        "price_last_balance": 0.0,
+        "check_depth_of_market": {
+          "enabled": false,
+          "bids_to_ask_delta": 1
+        }
+      },
+      "exit_pricing": {
+        "price_side": "same",
+        "use_order_book": true,
+        "order_book_top": 1
+      },
+      "exchange": {
+        "name": "bingx",
+        "key": "Tw9aePMW0Monmam0FPqoIERcgXyE1rNIWe4XzUgNfeNKOBNFILMUSe7JHPbxjWHSZ3e8TlVHB8Dl4PrwgPQ",
+        "secret": "MYwkjUIbI42JzkIwwLB00gk0FpaJDXuvExcdj9hp6TVZYOmua6yACg5BcN82FRnbrrUWVV0hSD8pboQgDA",
+        "ccxt_config": {},
+        "ccxt_async_config": {},
+        "pair_whitelist": [
+        "BTC/USDT"
+        ],
+        "pair_blacklist": []
+      },
+      "pairlists": [{ "method": "StaticPairList" }],
+      "edge": {
+        "enabled": false,
+        "process_throttle_secs": 3600,
+        "calculate_since_number_of_days": 7,
+        "allowed_risk": 0.01,
+        "stoploss_range_min": -0.01,
+        "stoploss_range_max": -0.99,
+        "stoploss_range_step": -0.01,
+        "minimum_winrate": 0.6,
+        "minimum_expectancy": 0.2,
+        "min_trade_number": 10,
+        "max_trade_duration_minute": 1440,
+        "remove_pumps": false
+      },
+      "telegram": {
+      "enabled": false,
+      "token": "7750541631:AAHRRcLY-PLTCbQUcosLQtY8dm2Sq0CbU_w",
+      "chat_id": "1297355532",
+      "keyboard": [
+        [
+          "/daily",
+          "/balance",
+          "/profit",
+          "/start",
+          "/stop"
+        ],
+        [
+          "/status table",
+          "/performance",
+          "/logs"
+        ],
+        [
+          "/stopbuy",
+          "/reload_config"
+        ]
+      ],
+     "notification_settings": {
+        "status": "on",
+        "warning": "on",
+        "startup": "on",
+        "entry": "on",
+        "exit": "on",
+        "entry_cancel": "silent",
+        "exit_cancel": "silent",
+        "entry_fill": "silent",
+        "exit_fill": "silent",
+        "protection_trigger": "on",
+        "protection_trigger_global": "on"
+      },
+      "reload": true,
+      "balance_dust_level": 0.01
+    },
+      "api_server": {
+        "enabled": true,
+        "listen_ip_address": "0.0.0.0",
+        "listen_port": 8080,
+        "verbosity": "error",
+        "enable_openapi": false,
+        "jwt_secret_key": "556ebba5770ae3a07e80eda0f0f2b55df102896f8a5b86459c3433c1314345c4",
+        "CORS_origins": [],
+        "ws_token": "hZ-y58LXyX_HZ8O1cJzVyN6ePWrLpNQv4Q",
+        "username": "",
+        "password": ""
+      },
+      "bot_name": "",
+      "initial_state": "stopped",
+      "force_entry_enable": false,
+      "internals": {
+        "process_throttle_secs": 5
+      }
+    }
+  

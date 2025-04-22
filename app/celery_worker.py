@@ -14,8 +14,10 @@ import yaml
 import logging
 from freqtrade_client import FtRestClient
 import secrets
+from app.security import decrypt_data
 import json
 from dotenv import load_dotenv
+
 
 
 load_dotenv()
@@ -149,8 +151,8 @@ def generate_secret_config(
         "dry_run": is_dry_run,  
         "exchange": {
             "name": exchange,
-            "key": api_key,
-            "secret": secret_key,
+            "key": decrypt_data(api_key),
+            "secret": decrypt_data(secret_key),
             "ccxt_config": {
                 "enableRateLimit": True  
             },
@@ -170,7 +172,7 @@ def generate_secret_config(
             "listen_port": 8888,
             "verbosity": "error",
             "jwt_secret_key": "",
-            "ws_token": "",
+            "ws_token": "hZ-y58LXyX_HZ8O1cJzVyN6ePWrLpNQv4Q",
             "CORS_origins": [],
             "username": username,
             "password": password
@@ -358,47 +360,49 @@ def update_docker_compose(user_directory, container_name, next_port, strategy_na
 
 
 
-@celery.task
-def start_user_strategy(user_id, bot_name, strategy_name):
-    """Запускает стратегию в отдельном контейнере."""
-    return run_sync(_start_user_strategy(user_id, bot_name, strategy_name))
+# @celery.task
+# def start_user_strategy(user_id, bot_name, strategy_name):
+#     """Запускает стратегию в отдельном контейнере."""
+#     return run_sync(_start_user_strategy(user_id, bot_name, strategy_name))
 
-async def _start_user_strategy(user_id, bot_name, strategy_name):
-    await init_db()
-    try:
-        # Получаем информацию о контейнере стратегии
-        user = await User.filter(id = user_id).first()
-        container_info = await Bot.filter(user=user, container_id=f"freqtrade_user_{user_id}_strategy_{bot_name}").first()
-        if not container_info:
-            return f"Error: Container for strategy {bot_name} not found."
+# async def _start_user_strategy(user_id, bot_name, strategy_name):
+#     await init_db()
+#     try:
+#         # Получаем информацию о контейнере стратегии
+#         user = await User.filter(id = user_id).first()
+#         container_info = await Bot.filter(user=user, container_id=f"freqtrade_user_{user_id}_strategy_{bot_name}").first()
+#         if not container_info:
+#             return f"Error: Container for strategy {bot_name} not found."
 
-        container_name = container_info.container_id
-        container = client.containers.get(container_name)
+#         container_name = container_info.container_id
+#         container = client.containers.get(container_name)
 
-        # Проверяем, активен ли контейнер
-        if container.status != "running":
-            container.restart()
+#         # Проверяем, активен ли контейнер
+#         if container.status != "running":
+#             container.restart()
 
-        # Убедимся, что контейнер запущен и активен
-        if container.status != "running":
-            return f"Error: Failed to start container {container_name}."
+#         # Убедимся, что контейнер запущен и активен
+#         if container.status != "running":
+#             return f"Error: Failed to start container {container_name}."
 
-        # Обновляем статус бота
-        bot = await Bot.filter(user=user, container_id=f"freqtrade_user_{user_id}_strategy_{bot_name}" ).first()
-        if bot:
-            bot.status = "active"
-            await bot.save()
+#         # Обновляем статус бота
+#         bot = await Bot.filter(user=user, container_id=f"freqtrade_user_{user_id}_strategy_{bot_name}" ).first()
+#         if bot:
+#             bot.status = "active"
+#             await bot.save()
 
-        # Обновляем статус контейнера
-        container_info.status = "running"
-        await container_info.save()
+#         # Обновляем статус контейнера
+#         container_info.status = "running"
+#         await container_info.save()
 
-        return f"Strategy {bot_name} started in container {container_name}."
-    except Exception as e:
-        return f"Error occurred while starting strategy {bot_name}: {str(e)}"
-    finally:
-        await close_db()
+#         return f"Strategy {bot_name} started in container {container_name}."
+#     except Exception as e:
+#         return f"Error occurred while starting strategy {bot_name}: {str(e)}"
+#     finally:
+#         await close_db()
 
+
+# ------------------------------=-=-=-=-=-==--------------------------------
 
 @celery.task
 def start_user_strategy(user_id, bot_name, strategy_name):
@@ -447,6 +451,233 @@ async def _start_user_strategy(user_id, bot_name, strategy_name):
 
 
 @celery.task
+def stop_user_strategy(user_id, bot_name, strategy_name):
+    """
+    Задача, которая должна:
+      1. Найти нужный бот в БД
+      2. Вызвать вторую задачу (api_interface_no_param), чтобы 
+         отдать команду Freqtrade (start).
+    """
+    return run_sync(_stop_user_strategy(user_id, bot_name, strategy_name))
+
+async def _stop_user_strategy(user_id, bot_name, strategy_name):
+    await init_db()
+    try:
+        async with in_transaction():
+            # 1) Ищем, есть ли бот
+            user = await User.filter(id = user_id).first()
+            # port = await get_next_available_port() - 1
+            print(bot_name, user_id)
+            bot_record = await Bot.filter(user=user, name=bot_name).first()
+            if not bot_record:
+                return f"!!!!!!!!!Error: Bot {bot_name} not found in DB for user_id={user_id}!!!!!!!!!!!!"
+
+            container_port = bot_record.port 
+            password = bot_record.password
+            logging.info(f"Will send 'start' command to Freqtrade on port {container_port}")
+
+            # 2) Вызываем вторую задачу Celery, которая реально пойдёт в Freqtrade API
+            #    get_command='start' – значит, будем делать client.start().
+            result = api_interface_no_param.delay(
+                get_command='stop',
+                username='freqtrader',
+                password=password,
+                port=container_port
+            )
+
+            # 3) Обновляем локально статус бота, что дескать он "запускается".
+            bot_record.status = "started"
+            await bot_record.save()
+
+            # Мы вернём task_id, например
+            return f"Launched stop command for {bot_name}, check task {result.id}"
+    finally:
+        await close_db()
+
+
+
+@celery.task
+def get_bot_whitelist(user_id, bot_name):
+    return run_sync(_get_bot_whitelist(user_id, bot_name))
+
+
+async def _get_bot_whitelist(user_id, bot_name):
+    await init_db()
+    try:
+        async with in_transaction():
+            # Ищем пользователя и бота
+            user = await User.filter(id=user_id).first()
+            bot_record = await Bot.filter(user=user, name=bot_name).first()
+            if not bot_record:
+                return {"error": f"Bot {bot_name} not found in DB for user_id={user_id}"}
+            container_port = bot_record.port
+            print("Эй йооооооу", container_port)
+            password = bot_record.password
+            logging.info(f"Will send 'whitelist' command to Freqtrade on port {container_port}")
+            
+            # Здесь вместо запуска новой задачи, вызываем _api_interface_no_param напрямую:
+            result = await _api_interface_no_param('whitelist', 'freqtrader', password, container_port)
+            print(result)
+            return result
+        
+    finally:
+        await close_db()
+
+
+@celery.task
+def get_pair_history(user_id, bot_name, pair, timeframe, strategy, timerange):
+    return run_sync(_get_pair_history(user_id, bot_name, pair, timeframe, strategy, timerange))
+
+
+async def _get_pair_history(user_id, bot_name, pair, timeframe, strategy, timerange):
+    await init_db()
+    try:
+        async with in_transaction():
+            # Ищем пользователя и бота
+            user = await User.filter(id=user_id).first()
+            bot_record = await Bot.filter(user=user, name=bot_name).first()
+            if not bot_record:
+                return {"error": f"Bot {bot_name} not found in DB for user_id={user_id}"}
+            container_port = bot_record.port
+            password = bot_record.password
+
+            # Вызываем API для получения истории по паре с передачей всех нужных параметров
+            result = await _api_interface_pair_history(
+                'freqtrader',
+                password,
+                container_port,
+                pair,
+                timeframe,
+                strategy,
+                timerange
+            )
+            return result
+    finally:
+        await close_db()
+
+
+
+@celery.task
+def get_trades(user_id, bot_name):
+    """
+    Получение текущих открых сделок
+    
+    :param user_id: ID пользователя 
+    :param bot_name: Имя бота
+    :return: task
+    """
+    return run_sync(_get_trades(user_id, bot_name))
+async def _get_trades(user_id, bot_name):
+    await init_db()
+    try:
+        async with in_transaction():
+            user = await User.filter(id=user_id).first()
+            bot_record = await Bot.filter(user=user, name=bot_name).first()
+            if not bot_record:
+                return {"error": f"Bot {bot_name} not found in DB for user_id={user_id}"}
+            container_port = bot_record.port
+            password = bot_record.password
+            result = await _api_interface_trades('freqtrader', password, container_port)
+            trades_arr = result['info'] # todo
+            return trades_arr
+    
+    finally:
+       await close_db()
+
+
+
+@celery.task
+def get_history(user_id, bot_name):
+    """
+    Получение истории сделок
+    
+    :param user_id: ID пользователя 
+    :param bot_name: Имя бота
+    :return: task
+    """
+    return run_sync(_get_history(user_id, bot_name))
+async def _get_history(user_id, bot_name):
+    await init_db()
+    try:
+        async with in_transaction():
+            user = await User.filter(id=user_id).first()
+            bot_record = await Bot.filter(user=user, name=bot_name).first()
+            if not bot_record:
+                return {"error": f"Bot {bot_name} not found in DB for user_id={user_id}"}
+            container_port = bot_record.port
+            password = bot_record.password
+            result = await _api_interface_no_param("trades",'freqtrader', password, container_port)
+            print(result) 
+            return result
+    
+    finally:
+       await close_db()
+
+@celery.task
+def force_exit_market(user_id, bot_name, trade_id):
+    """
+    Закрытие позиции по рынку
+    
+    :param user_id: ID пользователя у которого закрываем
+    :param bot_name: Имя бота у которого закрываем позицию
+    :param trade_id: Trade ID которую закрывем
+    :return: task
+    """
+    return run_sync(_force_exit_market(user_id, bot_name, trade_id))
+
+async def _force_exit_market(user_id, bot_name, trade_id):
+    await init_db()
+    try:
+        async with in_transaction():
+            user = await User.filter(id=user_id).first()
+            bot_record = await Bot.filter(user=user, name=bot_name).first()
+            if not bot_record:
+                return {"error": f"Bot {bot_name} not found in DB for user_id={user_id}"}
+            container_port = bot_record.port
+            password = bot_record.password
+            print("Ну тут цжк тчто тне так блять", container_port)
+            logging.info(f"Will send 'forceexit' command to Freqtrade on port {container_port}")
+            result = await _api_interface_forceexit('freqtrader', password, container_port, trade_id)
+    finally:
+        await close_db()
+
+        
+@celery.task
+def get_bot_balance(user_id, bot_name):
+    """
+    Закрытие позиции по рынку
+    
+    :param user_id: ID пользователя у которого закрываем
+    :param bot_name: Имя бота у которого закрываем позицию
+    :param trade_id: Trade ID которую закрывем
+    :return: task
+    """
+    return run_sync(_get_bot_balance(user_id, bot_name))
+
+async def _get_bot_balance(user_id, bot_name):
+    await init_db()
+    try:
+        async with in_transaction():
+            user = await User.filter(id=user_id).first()
+            bot_record = await Bot.filter(user=user, name=bot_name).first()
+            if not bot_record:
+                return {"error": f"Bot {bot_name} not found in DB for user_id={user_id}"}
+            container_port = bot_record.port
+            password = bot_record.password
+            logging.info(f"Will send 'profit' command to Freqtrade on port {container_port}")
+            result = await _api_interface_no_param("profit", 'freqtrader', password, container_port)
+            return result
+    finally:
+        await close_db()
+
+
+
+
+
+
+# ------------------------=-=-=-=-=-=-=-=-=-=-=-=-=----------------------------------
+
+@celery.task
 def api_interface_no_param(get_command, username, password, port):
     """
     Вторая задача, которая чисто ходит в Freqtrade API
@@ -473,42 +704,83 @@ async def _api_interface_no_param(get_command, username, password, port):
         pass
 
 
-# @celery.task
-# def stop_user_bot(user_id, strategy_name):
-#     """Останавливает контейнер для указанной стратегии."""
-#     return run_sync(_stop_user_bot(user_id, strategy_name))
+
+@celery.task
+def api_interface_forceexit(username, password, port, trade_id):
+    """
+    Вторая задача, которая чисто ходит в Freqtrade API
+    """
+    return run_sync(_api_interface_forceexit(username, password, port, trade_id))
 
 
-# async def _stop_user_bot(user_id, strategy_name):
-#     await init_db()
-#     try:
-#         # Получаем информацию о контейнере стратегии
+async def _api_interface_forceexit(username, password, port, trade_id):
 
-#         container_info = await Bot.filter(container_id=f"freqtrade_user_{user_id}_strategy_{strategy_name}" ).first()
-#         if not container_info:
-#             return f"Error: Container for strategy {strategy_name} not found."
-#         container_name = container_info.container_id
-#         container = client.containers.get(container_name)
+    try:
+        # 1) Создаём клиента Freqtrade
+        get_command = 'forceexit'
+        client = FtRestClient(f"http://host.docker.internal:{port}", username, password)
+        exchange_class = getattr(client, get_command.lower(), None)
+        if not exchange_class:
+            return {"error": f"Unknown command '{get_command}' for FtRestClient"}
 
-#         # Проверяем, активен ли контейнер
-#         if container.status != "running":
-#             return f"Container {container_name} is not running."
+        # 3) Вызываем метод
+        ping = exchange_class(tradeid=trade_id, ordertype='market')
+        logging.info(f"Command '{get_command}' result: {ping}")
+        return {"info": ping, "command": get_command}
+    finally:
+        pass
 
-#         # Останавливаем контейнер
-#         container.stop()
 
-#         # Обновляем статус контейнера
-#         container_info.status = "stopped"
-#         await container_info.save()
+@celery.task
+def api_interface_pair_history(username, password, port, pair_name, timeframe, strategy, timerange):
+    """
+    Задача, которая ходит в Freqtrade API для получения истории по паре.
+    """
+    return run_sync(_api_interface_pair_history(username, password, port, pair_name, timeframe, strategy, timerange))
 
-#         # Обновляем статус бота
-#         bot = await Bot.filter(container_id=f"freqtrade_user_{user_id}_strategy_{strategy_name}" ).first()
-#         if bot:
-#             bot.status = "inactive"
-#             await bot.save()
 
-#         return f"Container {container_name} stopped successfully."
-#     except Exception as e:
-#         return f"Error occurred while stopping strategy {strategy_name}: {str(e)}"
-#     finally:
-#         await close_db()
+async def _api_interface_pair_history(username, password, port, pair_name, timeframe, strategy, timerange):
+    try:
+        # Создаём клиента Freqtrade
+        client = FtRestClient(f"http://host.docker.internal:{port}", username, password)
+        # Определяем команду
+        get_command = "pair_history"
+        # Получаем метод pair_history из клиента
+        pair_history_method = getattr(client, get_command.lower(), None)
+        if not pair_history_method:
+            return {"error": f"Freqtrade client does not support command '{get_command}'"}
+        
+        # Вызываем метод с передачей параметров
+        result = pair_history_method(pair_name, timeframe, strategy, timerange)
+        logging.info(f"Command '{get_command}' result: {result}")
+        print(result)
+        return {"info": result, "command": get_command}
+    finally:
+        pass
+
+
+@celery.task
+def api_interface_trades(username, password, port):
+    """
+    Задача, которая ходит в Freqtrade API для получения истории сделок
+    """
+    return run_sync(_api_interface_trades(username, password, port))
+
+async def _api_interface_trades(username, password, port):
+    try:
+        # Создаём клиента Freqtrade
+        client = FtRestClient(f"http://host.docker.internal:{port}", username, password)
+        # Устанавливаем команду
+        get_command = "status"
+        # Получаем метод status из клиента
+        trades_method = getattr(client, get_command.lower(), None)
+        if not trades_method:
+            return {"error": f"Freqtrade client does not support command '{get_command}'"}
+        
+        # Вызываем метод с параметром trdes
+        ping = trades_method()
+        # logging.info(f"Command '{get_command}' result: {ping}")
+        # print(ping)
+        return {"info": ping, "command": get_command}
+    finally:
+        pass

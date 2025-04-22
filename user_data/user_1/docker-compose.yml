@@ -1,37 +1,7 @@
+
 version: '3.8'
 services:
   placeholder:
     image: scratch
     container_name: user_1_placeholder
-  freqtrade_user_1_strategy_E0V1E:
-    image: freqtradeorg/freqtrade:stable
-    container_name: freqtrade_user_1_strategy_E0V1E
-    restart: unless-stopped
-    volumes:
-    - ./user_data/user_1:/freqtrade/user_data
-    ports:
-    - 3000:8888
-    command: trade --db-url sqlite:////freqtrade/user_data/trades.sqlite --config
-      /freqtrade/user_data/E0V1E.json --config /freqtrade/user_data/E0V1E_secret.json
-      --strategy E0V1E
-    logging:
-      driver: json-file
-      options:
-        max-size: 16m
-        max-file: '3'
-  freqtrade_user_1_strategy_ElliotV8_original_ichiv3:
-    image: freqtradeorg/freqtrade:stable
-    container_name: freqtrade_user_1_strategy_ElliotV8_original_ichiv3
-    restart: unless-stopped
-    volumes:
-    - ./user_data/user_1:/freqtrade/user_data
-    ports:
-    - 3001:8888
-    command: trade --db-url sqlite:////freqtrade/user_data/trades.sqlite --config
-      /freqtrade/user_data/ElliotV8_original_ichiv3.json --config /freqtrade/user_data/ElliotV8_original_ichiv3_secret.json
-      --strategy ElliotV8_original_ichiv3
-    logging:
-      driver: json-file
-      options:
-        max-size: 16m
-        max-file: '3'
+    

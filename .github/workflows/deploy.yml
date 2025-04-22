@@ -29,30 +29,47 @@ jobs:
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
           cd /home/user/crypto_trading_platform
-          docker exec -i postgres_db psql -U postgres << EOF
-          \c trading_db
+
+          echo "🧼 Truncating DB tables (кроме bots_info)..."
+          docker exec -i postgres_db psql -U ${{ secrets.DB_USERNAME }} -d trading_db << EOF
           SET session_replication_role = 'replica';
           DO \$\$
-          DECLARE
-              table_name TEXT;
+          DECLARE 
+              r RECORD;
           BEGIN
-              FOR table_name IN
-                  SELECT tablename
-                  FROM pg_tables
-                  WHERE schemaname = 'public'
+              FOR r IN (
+                  SELECT tablename 
+                  FROM pg_tables 
+                  WHERE schemaname = 'public' 
+                    AND tablename <> 'bots_info'
+              )
               LOOP
-                  EXECUTE FORMAT('TRUNCATE TABLE %I RESTART IDENTITY CASCADE;', table_name);
+                  EXECUTE 'TRUNCATE TABLE public.' || quote_ident(r.tablename) || ' RESTART IDENTITY CASCADE';
               END LOOP;
           END \$\$;
           SET session_replication_role = 'origin';
+
+          -- 🟢 Заполняем таблицу bots_info
+          INSERT INTO bots_info (name, type, pnl, crypto_pairs, description, created_at, updated_at)
+          VALUES 
+            ('E0V1E', 'FUTURE', 160, 'BTC/USDT', 'Данный бот круто торгует на BTC', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+            ('ElliotV8_original_ichiv3', 'SPOT', 70, 'ETH/USDT', 'Данный бот хорошо торгует на ETH', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+            ('every_minute', 'SPOT', 70, 'BTC/USDT', 'Данный бот хорошо торгует на BTC', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
           DO \$\$ BEGIN
-              RAISE NOTICE 'Все таблицы успешно очищены.';
+              RAISE NOTICE 'Таблицы очищены, bots_info заполнена.';
           END \$\$;
           EOF
+
+          echo "♻️ Cleaning up..."
           docker rm -f $(docker ps -aq)
           rm -rf user_data/user_1
+
+          echo "📦 Updating repo..."
           git restore .
           git pull
+
+          echo "🚀 Starting containers..."
           docker-compose down
           docker-compose up -d --build
 

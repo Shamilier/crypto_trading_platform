@@ -1,5 +1,7 @@
 from tortoise import fields
 from tortoise.models import Model
+from decimal import Decimal                # пригодится в коде
+
 
 
 
@@ -86,3 +88,54 @@ class BotInfo(Model):
 
     class Meta:
         table = "bots_info"
+
+
+
+# ========  НОВОЕ ============================================================
+
+# …app/models.py
+class Trade(Model):
+    id = fields.IntField(pk=True)
+
+    bot_info = fields.ForeignKeyField(          # ← вместо Bot
+        "models.BotInfo",
+        related_name="trades",
+        on_delete=fields.CASCADE,
+    )
+
+    pair         = fields.CharField(max_length=32)
+    stake_amount = fields.DecimalField(max_digits=20, decimal_places=8)
+    open_date    = fields.DatetimeField()
+    close_date   = fields.DatetimeField()
+    profit_abs   = fields.DecimalField(max_digits=20, decimal_places=8)
+    profit_ratio = fields.DecimalField(max_digits=12, decimal_places=6)
+    trade_duration = fields.IntField()
+    exit_reason  = fields.CharField(max_length=64, null=True)
+    is_short     = fields.BooleanField()
+
+    class Meta:
+        table = "trades"
+        unique_together = (("bot_info", "open_date", "pair"),)
+        indexes = (("bot_info_id", "open_date"),)
+
+
+class DailyBreakdown(Model):
+    id = fields.IntField(pk=True)
+
+    bot_info = fields.ForeignKeyField(          # ← вместо Bot
+        "models.BotInfo",
+        related_name="daily_breakdowns",
+        on_delete=fields.CASCADE,
+    )
+
+    date          = fields.DateField()
+    profit_abs    = fields.DecimalField(max_digits=20, decimal_places=8)
+    wins          = fields.IntField()
+    losses        = fields.IntField()
+    trades_count  = fields.IntField()
+    profit_factor = fields.DecimalField(max_digits=14, decimal_places=6)
+
+    class Meta:
+        table = "daily_breakdowns"
+        unique_together = (("bot_info", "date"),)
+        indexes = (("bot_info_id", "date"),)
