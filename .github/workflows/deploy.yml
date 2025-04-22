@@ -61,7 +61,7 @@ jobs:
           END \$\$;
           EOF
 
-          echo "♻️ Cleaning up..."
+          echo "♻️ Cleaning up...."
           docker rm -f $(docker ps -aq)
           rm -rf user_data/user_1
 
