@@ -41,7 +41,7 @@ jobs:
                   SELECT tablename 
                   FROM pg_tables 
                   WHERE schemaname = 'public' 
-                    AND tablename <> 'bots_info'
+                    AND tablename <> 'bots_nfo'
               )
               LOOP
                   EXECUTE 'TRUNCATE TABLE public.' || quote_ident(r.tablename) || ' RESTART IDENTITY CASCADE';
@@ -74,4 +74,7 @@ jobs:
           echo "🚀 Starting containers..."
           docker-compose down
           docker-compose up -d --build
+
+          echo "📊 Importing backtests..."
+          docker-compose exec app python3 -m app.load_backtests
 
