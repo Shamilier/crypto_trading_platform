@@ -195,6 +195,8 @@ for route in SPA_ROUTES:
 async def send_message(request: Request, email: str = Form(...), csrf_token: str = Form(...)):
    
     cookies_csrf_token = request.cookies.get("csrf_token")
+    print("======= ", cookies_csrf_token, " ========")
+    print("======= ", csrf_token, " ========")
     # Проверяем наличие токена и совпадение
     if not cookies_csrf_token or cookies_csrf_token != csrf_token:
         raise HTTPException(status_code=403, detail="CSRF-токен недействителен или отсутствует.")
