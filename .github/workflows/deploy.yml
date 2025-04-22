@@ -76,5 +76,5 @@ jobs:
           docker-compose up -d --build
 
           echo "📊 Importing backtests..."
-          docker-compose exec app python3 -m app.load_backtests
+          docker-compose run --rm app python3 -m app.load_backtests
 
