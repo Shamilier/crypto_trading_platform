@@ -294,19 +294,21 @@ async def check_otp(request: Request, email: str = Form(...), otp: str = Form(..
 
 # Api (не защищенный путь).
 # Отравка csrf токена.
+
 @auth_routes.get("/api/csrf-token")
 async def get_csrf_token(request: Request):
-    print("CSRF вызван")
     csrf_token = generate_csrf_token()
-    response = JSONResponse({"message": "CSRF токен создан"}, status_code=200)
-    print(response, csrf_token)
-    a = response.set_cookie(key="csrf_token",
-                        value=csrf_token,
-                        httponly=False, # False, чтобы в js коде можно было достать.
-                        secure=False, # При деплое поменят на True.
-                        samesite='Lax'   # это норм
-                        )
-    print(a)
+    response = JSONResponse(
+        content={"message": "CSRF токен создан"},
+        status_code=200
+    )
+    response.set_cookie(
+        key="csrf_token",
+        value=csrf_token,
+        httponly=False,
+        secure=False,  # В проде — True
+        samesite="Lax"
+    )
     return response
 
 
