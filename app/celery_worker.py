@@ -686,10 +686,12 @@ def api_interface_no_param(get_command, username, password, port):
 
 
 async def _api_interface_no_param(get_command, username, password, port):
+    host = "172.17.0.1" 
+    # host = "host.docker.internal"
 
     try:
         # 1) Создаём клиента Freqtrade
-        client = FtRestClient(f"http://host.docker.internal:{port}", username, password)
+        client = FtRestClient(f"http://{host}:{port}", username, password)
         exchange_class = getattr(client, get_command.lower(), None)
         if not exchange_class:
             return {"error": f"Unknown command '{get_command}' for FtRestClient"}
@@ -714,11 +716,12 @@ def api_interface_forceexit(username, password, port, trade_id):
 
 
 async def _api_interface_forceexit(username, password, port, trade_id):
-
+    host = "172.17.0.1" 
+    # host = "host.docker.internal"
     try:
         # 1) Создаём клиента Freqtrade
         get_command = 'forceexit'
-        client = FtRestClient(f"http://host.docker.internal:{port}", username, password)
+        client = FtRestClient(f"http://{host}:{port}", username, password)
         exchange_class = getattr(client, get_command.lower(), None)
         if not exchange_class:
             return {"error": f"Unknown command '{get_command}' for FtRestClient"}
@@ -740,9 +743,11 @@ def api_interface_pair_history(username, password, port, pair_name, timeframe, s
 
 
 async def _api_interface_pair_history(username, password, port, pair_name, timeframe, strategy, timerange):
+    host = "172.17.0.1" 
+    # host = "host.docker.internal"
     try:
         # Создаём клиента Freqtrade
-        client = FtRestClient(f"http://host.docker.internal:{port}", username, password)
+        client = FtRestClient(f"http://{host}:{port}", username, password)
         # Определяем команду
         get_command = "pair_history"
         # Получаем метод pair_history из клиента
@@ -767,9 +772,11 @@ def api_interface_trades(username, password, port):
     return run_sync(_api_interface_trades(username, password, port))
 
 async def _api_interface_trades(username, password, port):
+    host = "172.17.0.1" 
+    # host = "host.docker.internal"
     try:
         # Создаём клиента Freqtrade
-        client = FtRestClient(f"http://host.docker.internal:{port}", username, password)
+        client = FtRestClient(f"http://{host}:{port}", username, password)
         # Устанавливаем команду
         get_command = "status"
         # Получаем метод status из клиента
