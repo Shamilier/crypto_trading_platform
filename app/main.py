@@ -24,7 +24,7 @@ async def shutdown():
 app.add_middleware(
     CORSMiddleware,
     # allow_origins=["http://localhost:3000"],  # Указываем точный адрес фронтенда
-    allow_origins=["http://localhost:8000"],
+    allow_origins=["*"],
     allow_credentials=True,  # Разрешаем куки
     allow_methods=["*"],  # Разрешаем все методы (GET, POST и т.д.)
     allow_headers=["*"],  # Разрешаем все заголовки
