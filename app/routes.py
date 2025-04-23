@@ -111,8 +111,8 @@ async def validate_api_key(exchange_name: str, api_key: str, secret_key: str):
 
 def generate_one_time_password(length=6):
     """Генерирует одноразовый пароль из случайных цифр."""
-    # return ''.join(random.choices(string.digits, k=length))
-    return 666666
+    return ''.join(random.choices(string.digits, k=length))
+    # return 666666
 
 
 
@@ -205,34 +205,34 @@ async def send_message(request: Request, email: str = Form(...), csrf_token: str
     await OTPCode.filter(email=email).delete()
     otp_entry = await OTPCode.create(email=email, otp=generate_one_time_password(), expires_at=datetime.utcnow() + timedelta(minutes=1))
 
-    # # Формируем HTML-письмо
-    # email_body = f"""
-    # <html>
-    # <body>
-    #     <h1>Одноразовый пароль</h1>
-    #     <p>Ваш код для входа: <strong>{otp_entry.otp}</strong></p>
-    # </body>
-    # </html>
-    # """
+    # Формируем HTML-письмо
+    email_body = f"""
+    <html>
+    <body>
+        <h1>Одноразовый пароль</h1>
+        <p>Ваш код для входа: <strong>{otp_entry.otp}</strong></p>
+    </body>
+    </html>
+    """
 
-    # # Подготавливаем данные для отправки запроса
-    # email_data = {
-    #     "from": "info@eazy-trade.ru",
-    #     "subject": "Вход Eazy Trade",
-    #     "to": email,
-    #     "html": email_body,
-    # }
+    # Подготавливаем данные для отправки запроса
+    email_data = {
+        "from": "info@eazy-trade.ru",
+        "subject": "Вход Eazy Trade",
+        "to": email,
+        "html": email_body,
+    }
 
-    # headers = {
-    #     "Authorization": os.getenv('SMTP_KEY')
-    # }
+    headers = {
+        "Authorization": os.getenv('SMTP_KEY')
+    }
 
-    # # Отправляем запрос в SMTP API
-    # async with aiohttp.ClientSession() as session:
-    #     async with session.post("https://api.smtp.bz/v1/smtp/send", json=email_data, headers=headers) as response:
-    #         if response.status != 200:
-    #             logging.error(f"Ошибка отправки письма: {await response.text()}")
-    #             raise HTTPException(status_code=500, detail="Ошибка при отправке письма")
+    # Отправляем запрос в SMTP API
+    async with aiohttp.ClientSession() as session:
+        async with session.post("https://api.smtp.bz/v1/smtp/send", json=email_data, headers=headers) as response:
+            if response.status != 200:
+                logging.error(f"Ошибка отправки письма: {await response.text()}")
+                raise HTTPException(status_code=500, detail="Ошибка при отправке письма")
 
     return JSONResponse({"message": "Одноразовый пароль отправлен на email"}, status_code=200)
 
