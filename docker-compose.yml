@@ -44,7 +44,7 @@ services:
     restart: always
     labels:
     - "traefik.enable=true"
-    - "traefik.http.routers.app.rule=Host(`eazy-trade.com`)"
+    - "traefik.http.routers.app.rule=Host(`eazy-trade.ru`)"
     - "traefik.http.routers.app.entrypoints=websecure"
     - "traefik.http.routers.app.tls.certresolver=myresolver"
     - "traefik.http.services.app.loadbalancer.server.port=8000"
