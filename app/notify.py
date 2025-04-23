@@ -10,6 +10,7 @@ TELEGRAM_TOKEN = os.getenv('NOTIFY_TKN')
 CHAT_ID = os.getenv('DI_TAHC')
 CONTAINER_NAME = 'crypto_trading_app'
 
+
 def send_alert(msg):
     url = f'https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage'
     requests.post(url, data={'chat_id': CHAT_ID, 'text': msg})
