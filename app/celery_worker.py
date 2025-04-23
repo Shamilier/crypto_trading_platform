@@ -18,6 +18,8 @@ from app.security import decrypt_data
 import json
 from dotenv import load_dotenv
 
+from app.notify import notify_new_container_created
+
 
 
 load_dotenv()
@@ -282,7 +284,7 @@ async def _add_strategy_to_container(user_id, strategy_name, deposit, api_key_na
             container_id = container_name
         )
 
-
+        notify_new_container_created(user_id, strategy_name, container_name)
         return f"Strategy {strategy_name} successfully added and container {container_name} created."
     except Exception as e:
         raise Exception(f"Error occurred: {str(e)}")
