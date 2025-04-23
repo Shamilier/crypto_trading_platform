@@ -1,22 +1,38 @@
-# notify.py
+import subprocess
+import time
 import requests
-import sys
+import os
+from dotenv import load_dotenv
 
-BOT_TOKEN = 'NOTIFY_TKN'
-CHAT_ID = '1297355532'  # получен от @userinfobot
-MESSAGE = sys.argv[1] if len(sys.argv) > 1 else "Сервер перезагрузился"
+load_dotenv()
 
-def send_telegram_message():
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-    data = {
-        "chat_id": CHAT_ID,
-        "text": MESSAGE
-    }
-    try:
-        response = requests.post(url, data=data)
-        response.raise_for_status()
-    except Exception as e:
-        print(f"Ошибка отправки: {e}")
+TELEGRAM_TOKEN = os.getenv('NOTIFY_TKN')
+CHAT_ID = os.getenv('DI_TAHC')
+CONTAINER_NAME = 'crypto_trading_app'
 
-if __name__ == "__main__":
-    send_telegram_message()
+def send_alert():
+    msg = f"⚠ Контейнер {CONTAINER_NAME} остановлен!"
+    url = f'https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage'
+    requests.post(url, data={'chat_id': CHAT_ID, 'text': msg})
+
+def is_container_running():
+    result = subprocess.run(
+        ['docker', 'inspect', '-f', '{{.State.Running}}', CONTAINER_NAME],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True
+    )
+    return result.stdout.strip() == 'true'
+
+def main():
+    was_running = True
+    while True:
+        if not is_container_running() and was_running:
+            send_alert()
+            was_running = False
+        elif is_container_running():
+            was_running = True
+        time.sleep(30)  # Проверять каждые 30 секунд
+
+if __name__ == '__main__':
+    main()
