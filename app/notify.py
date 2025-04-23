@@ -10,8 +10,7 @@ TELEGRAM_TOKEN = os.getenv('NOTIFY_TKN')
 CHAT_ID = os.getenv('DI_TAHC')
 CONTAINER_NAME = 'crypto_trading_app'
 
-def send_alert():
-    msg = f"⚠ Контейнер {CONTAINER_NAME} остановлен!"
+def send_alert(msg):
     url = f'https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage'
     requests.post(url, data={'chat_id': CHAT_ID, 'text': msg})
 
@@ -25,10 +24,13 @@ def is_container_running():
     return result.stdout.strip() == 'true'
 
 def main():
+    msg = f"Проверка идет"
+    send_alert(msg)
     was_running = True
     while True:
         if not is_container_running() and was_running:
-            send_alert()
+            msg = f"⚠ Контейнер {CONTAINER_NAME} остановлен!"
+            send_alert(msg)
             was_running = False
         elif is_container_running():
             was_running = True
