@@ -37,11 +37,11 @@ def main():
     was_running = True
     while True:
         if not is_container_running() and was_running:
-            msg = f"🚨🚨🚨 Контейнер {CONTAINER_NAME} остановлен! 🚨🚨🚨"
+            msg = f"🚨 Контейнер {CONTAINER_NAME} остановлен! 🚨"
             send_alert(msg)
             was_running = False
         elif is_container_running() and not was_running:
-            msg = f"✅✅✅ Контейнер {CONTAINER_NAME} Запущен! ✅✅✅"
+            msg = f"✅ Контейнер {CONTAINER_NAME} Запущен! ✅"
             send_alert(msg)
             was_running = True
         time.sleep(30)  # Проверять каждые 30 секунд
