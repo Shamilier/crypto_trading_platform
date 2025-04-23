@@ -78,4 +78,15 @@ jobs:
           echo "📊 Importing backtests..."
           docker-compose run --rm app python3 -m app.load_backtests
 
+          echo "⌛ Ожидаем 10 секунд..."
+          sleep 10
+
+          rm ./letsencrypt/acme.json
+          touch ./letsencrypt/acme.json
+          chmod 600 ./letsencrypt/acme.json
+          docker stop traefik_proxy
+          sleep 2
+          docker run --rm -v "$(pwd)/letsencrypt:/letsencrypt" alpine ls -l /letsencrypt/acme.json
+          docker-compose up -d traefik
+
 
