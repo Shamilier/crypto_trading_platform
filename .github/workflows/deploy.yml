@@ -77,6 +77,6 @@ jobs:
 
           echo "📊 Importing backtests..."
           docker-compose run --rm app python3 -m app.load_backtests
-          nohup python3 app/notify.py &
-          
+          setsid python3 app/notify.py > notify.log 2>&1 < /dev/null &
+
 
