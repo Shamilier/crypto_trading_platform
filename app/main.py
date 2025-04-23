@@ -6,6 +6,8 @@ from starlette.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import os
+from fastapi.responses import Response
+
 
 
 
@@ -31,6 +33,11 @@ app.add_middleware(
 )
 
 app.mount("/assets", StaticFiles(directory="dist/assets"), name="assets")
+
+
+@app.get("/favicon.ico")
+async def favicon():
+    return Response(status_code=204)
 
 app.include_router(auth_routes)
 app.add_middleware(SessionMiddleware, secret_key=os.getenv('SECRET_KEY'))
