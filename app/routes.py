@@ -819,7 +819,7 @@ async def run_backtest(
     )
     trades = await trades_qs
 
-    scale = bot.scale_for_backtest
+    scale = Decimal(str(bot.scale_for_backtest))  # аккуратный перевод в Decimal
 
     if not trades:
         return {"error": "В указанном диапазоне сделок нет"}
