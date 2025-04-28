@@ -1,43 +1,37 @@
 import json
+import glob
 
-# Пути к исходным файлам
-target_file2 = '/Users/shamilgaliev18mail.ru/cry/ft_userdata/user_data/backtest_results/backtest_today6-2025-04-15_10-43-52.json'  # Путь ко второму файлу
-result_file = '/Users/shamilgaliev18mail.ru/cry/ft_userdata/user_data/backtest_results/result_file.json'  # Путь к файлу, куда будем добавлять данные
+# Путь к файлу результата
+result_file = "/Users/shamilgaliev18mail.ru/cry/crypto_trading_platform/user_data/example/backtest_results/BB.json"
 
-# Чтение данных из второго файла target_file2
-with open(target_file2, 'r') as f:
-    target_data2 = json.load(f)
+# Список исходных файлов
+source_files = ["/Users/shamilgaliev18mail.ru/cry/crypto_trading_platform/user_data/example/backtest_results/u111-2025-04-28_11-17-45.json",
+                 "/Users/shamilgaliev18mail.ru/cry/crypto_trading_platform/user_data/example/backtest_results/u222-2025-04-28_11-20-43.json",
+                   "/Users/shamilgaliev18mail.ru/cry/crypto_trading_platform/user_data/example/backtest_results/u333-2025-04-28_11-24-04.json"]
 
-# Извлечение массива сделок из второго файла
-trades_from_target_file2 = target_data2.get("strategy", {}).get("E0V1E", {}).get("periodic_breakdown", {}).get("day", [])
+# Загрузка начального result файла
+with open(result_file, "r") as rf:
+    result_data = json.load(rf)
 
-# Преобразуем данные во второй файл в нужный формат для добавления в result_file
-new_trades = []
-for entry in trades_from_target_file2:
-    trade_info = {
-        "date": entry.get('date'),
-        "date_ts": entry.get('date_ts'),
-        "profit_abs": entry.get('profit_abs'),
-        "wins": entry.get('wins'),
-        "draws": entry.get('draws'),
-        "losses": entry.get('losses'),
-        "trades": entry.get('trades'),
-        "profit_factor": entry.get('profit_factor')
-    }
-    new_trades.append(trade_info)
+# Чистим изначальные trades и day
+result_data["strategy"]["BB_RTR"]["trades"] = []
+result_data["strategy"]["BB_RTR"]["periodic_breakdown"]["day"] = []
 
-# Чтение данных из result_file, если файл существует
-try:
-    with open(result_file, 'r') as f:
-        result_data = json.load(f)
-except FileNotFoundError:
-    result_data = {"trades": []}
+# Проходим по каждому исходному файлу
+for src_file in source_files:
+    with open(src_file, "r") as sf:
+        src_data = json.load(sf)
 
-# Добавляем новые сделки в существующие
-result_data["trades"].extend(new_trades)
+    # Проверяем наличие нужных данных
+    trades = src_data.get("strategy", {}).get("BB_RTR", {}).get("trades", [])
+    days = src_data.get("strategy", {}).get("BB_RTR", {}).get("periodic_breakdown", {}).get("day", [])
 
-# Сохраняем обновленные данные в result_file
-with open(result_file, 'w') as f:
-    json.dump(result_data, f, indent=4)
+    # Добавляем в итоговый файл
+    result_data["strategy"]["BB_RTR"]["trades"].extend(trades)
+    result_data["strategy"]["BB_RTR"]["periodic_breakdown"]["day"].extend(days)
 
-print(f"Данные успешно добавлены в {result_file}")
+# Сохраняем обновленный result файл
+with open("uuuuuu", "w") as out_f:
+    json.dump(result_data, out_f, indent=4)
+
+print("✅ Все данные успешно собраны в 'final_result.json'")

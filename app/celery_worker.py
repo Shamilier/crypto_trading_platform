@@ -361,49 +361,6 @@ def update_docker_compose(user_directory, container_name, next_port, strategy_na
 
 
 
-
-# @celery.task
-# def start_user_strategy(user_id, bot_name, strategy_name):
-#     """Запускает стратегию в отдельном контейнере."""
-#     return run_sync(_start_user_strategy(user_id, bot_name, strategy_name))
-
-# async def _start_user_strategy(user_id, bot_name, strategy_name):
-#     await init_db()
-#     try:
-#         # Получаем информацию о контейнере стратегии
-#         user = await User.filter(id = user_id).first()
-#         container_info = await Bot.filter(user=user, container_id=f"freqtrade_user_{user_id}_strategy_{bot_name}").first()
-#         if not container_info:
-#             return f"Error: Container for strategy {bot_name} not found."
-
-#         container_name = container_info.container_id
-#         container = client.containers.get(container_name)
-
-#         # Проверяем, активен ли контейнер
-#         if container.status != "running":
-#             container.restart()
-
-#         # Убедимся, что контейнер запущен и активен
-#         if container.status != "running":
-#             return f"Error: Failed to start container {container_name}."
-
-#         # Обновляем статус бота
-#         bot = await Bot.filter(user=user, container_id=f"freqtrade_user_{user_id}_strategy_{bot_name}" ).first()
-#         if bot:
-#             bot.status = "active"
-#             await bot.save()
-
-#         # Обновляем статус контейнера
-#         container_info.status = "running"
-#         await container_info.save()
-
-#         return f"Strategy {bot_name} started in container {container_name}."
-#     except Exception as e:
-#         return f"Error occurred while starting strategy {bot_name}: {str(e)}"
-#     finally:
-#         await close_db()
-
-
 # ------------------------------=-=-=-=-=-==--------------------------------
 
 @celery.task
