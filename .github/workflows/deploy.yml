@@ -30,19 +30,6 @@ jobs:
         script: |
           cd /home/user/crypto_trading_platform
 
-
-          echo "🟢 Применяем миграции --------"
-          docker exec -it postgres_db psql -U ${{ secrets.DB_USERNAME }} -d trading_db
-          DROP SCHEMA public CASCADE;
-          CREATE SCHEMA public;
-          docker exec -it crypto_trading_app rm -rf migrations
-          docker exec -it crypto_trading_app aerich init -t app.database.TORTOISE_ORM
-          docker exec -it crypto_trading_app aerich init-db
-          docker exec -it crypto_trading_app aerich migrate
-          docker exec -it crypto_trading_app aerich upgrade
-          docker exec -it postgres_db psql -U postgres -d trading_db -c "\dt"
-
-
           echo "🧼 Truncating DB tables (кроме bots_info)..."
           docker exec -i postgres_db psql -U ${{ secrets.DB_USERNAME }} -d trading_db << EOF
           SET session_replication_role = 'replica';
