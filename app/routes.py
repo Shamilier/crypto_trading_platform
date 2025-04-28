@@ -890,7 +890,7 @@ async def run_backtest(
         "equity"    : equity_curve,
         "drawdown"  : dd_curve,
         "pair_pnl"  : pair_pnl_list,
-        "scale":scale,
+        "scale": scale,
         "top": {
             "best": best_5,
             "worst": worst_5
