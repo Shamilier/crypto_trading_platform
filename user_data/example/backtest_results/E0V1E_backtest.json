@@ -1,6 +1,9 @@
 {
   "strategy": {
     "E0V1E": {
+      "params":{
+        "tradeable_balance": 1.0
+      },
       "trades": [
         {
           "pair": "OG/USDT",

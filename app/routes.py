@@ -6,7 +6,7 @@ from fastapi import HTTPException
 from fastapi import APIRouter, Request, Form, Depends, HTTPException, status, Response
 from tortoise.transactions import in_transaction
 from passlib.hash import bcrypt
-from app.models import User, ApiKey, Bot, OTPCode, BotInfo, BotInfo, DailyBreakdown, Trade
+from app.models import User, ApiKey, Bot, OTPCode, BotInfo, DailyBreakdown, Trade
 from app.models import Payment as PaymentModel
 import random
 import string
@@ -819,6 +819,8 @@ async def run_backtest(
     )
     trades = await trades_qs
 
+    scale = bot.scale_for_backtest
+
     if not trades:
         return {"error": "В указанном диапазоне сделок нет"}
 
@@ -888,6 +890,7 @@ async def run_backtest(
         "equity"    : equity_curve,
         "drawdown"  : dd_curve,
         "pair_pnl"  : pair_pnl_list,
+        "scale":scale,
         "top": {
             "best": best_5,
             "worst": worst_5
@@ -924,6 +927,8 @@ async def backtest_trades(
         open_date__lte=end_dt
     ).order_by("-open_date")
 
+    scale = bot.scale_for_backtest
+
     total = await qs.count()
     offset = (page - 1) * page_size
     items = await qs.offset(offset).limit(page_size).values(
@@ -950,4 +955,5 @@ async def backtest_trades(
         "page": page,
         "page_size": page_size,
         "total_pages": (total + page_size - 1) // page_size,
+        "scale": scale
     }

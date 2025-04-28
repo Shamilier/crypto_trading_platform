@@ -83,6 +83,7 @@ class BotInfo(Model):
     pnl = fields.FloatField() # PNL в год.
     crypto_pairs = fields.TextField() # Криптовалютные пары.
     description = fields.TextField() # Описание.
+    scale_for_backtest = fields.FloatField()
     created_at = fields.DatetimeField(auto_now_add=True)
     updated_at = fields.DatetimeField(auto_now=True)
 

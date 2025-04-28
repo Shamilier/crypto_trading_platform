@@ -30,6 +30,19 @@ jobs:
         script: |
           cd /home/user/crypto_trading_platform
 
+
+          echo "🟢 Применяем миграции --------"
+          docker exec -it postgres_db psql -U ${{ secrets.DB_USERNAME }} -d trading_db
+          DROP SCHEMA public CASCADE;
+          CREATE SCHEMA public;
+          docker exec -it crypto_trading_app rm -rf migrations
+          docker exec -it crypto_trading_app aerich init -t app.database.TORTOISE_ORM
+          docker exec -it crypto_trading_app aerich init-db
+          docker exec -it crypto_trading_app aerich migrate
+          docker exec -it crypto_trading_app aerich upgrade
+          docker exec -it postgres_db psql -U postgres -d trading_db -c "\dt"
+
+
           echo "🧼 Truncating DB tables (кроме bots_info)..."
           docker exec -i postgres_db psql -U ${{ secrets.DB_USERNAME }} -d trading_db << EOF
           SET session_replication_role = 'replica';
@@ -50,11 +63,11 @@ jobs:
           SET session_replication_role = 'origin';
 
           -- 🟢 Заполняем таблицу bots_info
-          INSERT INTO bots_info (name, type, pnl, crypto_pairs, description, created_at, updated_at)
+          INSERT INTO bots_info (name, type, pnl, crypto_pairs, description, scale_for_backtest ,created_at, updated_at)
           VALUES 
-            ('E0V1E', 'FUTURE', 160, 'BTC/USDT', 'Данный бот круто торгует на BTC', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-            ('BB_RTR', 'SPOT', 100500, 'MANY', 'Не скам зуб даю', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-            ('every_minute', 'SPOT', 70, 'BTC/USDT', 'Данный бот хорошо торгует на BTC', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+            ('E0V1E', 'FUTURE', 160, 'BTC/USDT', 'Данный бот круто торгует на BTC', 1.0 ,CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+            ('BB_RTR', 'SPOT', 100500, 'MANY', 'Не скам зуб даю', CURRENT_TIMESTAMP, 0.2, CURRENT_TIMESTAMP),
+            ('every_minute', 'SPOT', 70, 'BTC/USDT', 'Данный бот хорошо торгует на BTC', 1.0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
           DO \$\$ BEGIN
               RAISE NOTICE 'Таблицы очищены, bots_info заполнена.';

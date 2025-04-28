@@ -1,6 +1,9 @@
 {
   "strategy": {
       "BB_RTR": {
+        "params":{
+        "tradeable_balance": 0.2
+            },
           "trades": [
               {
                   "pair": "ICP/USDT",
