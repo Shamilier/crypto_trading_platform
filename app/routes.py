@@ -819,7 +819,7 @@ async def run_backtest(
     )
     trades = await trades_qs
 
-    scale = Decimal(depo) / Decimal(bot.dry_run_wallet)
+    scale = Decimal(depo) / Decimal(bot.scale_for_backtest)
 
     if not trades:
         return {"error": "В указанном диапазоне сделок нет"}
@@ -928,7 +928,7 @@ async def backtest_trades(
         open_date__lte=end_dt
     ).order_by("-open_date")
 
-    scale = Decimal(depo) / Decimal(bot.dry_run_wallet)
+    scale = Decimal(depo) / Decimal(bot.scale_for_backtest)
 
     total = await qs.count()
     offset = (page - 1) * page_size

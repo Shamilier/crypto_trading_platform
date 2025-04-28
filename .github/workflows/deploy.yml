@@ -52,9 +52,9 @@ jobs:
           -- 🟢 Заполняем таблицу bots_info
           INSERT INTO bots_info (name, type, pnl, crypto_pairs, description, scale_for_backtest ,created_at, updated_at)
           VALUES 
-            ('E0V1E', 'FUTURE', 160, 'BTC/USDT', 'Данный бот круто торгует на BTC', 1.0 ,CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-            ('BB_RTR', 'SPOT', 100500, 'MANY', 'Не скам зуб даю', 0.2, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-            ('every_minute', 'SPOT', 70, 'BTC/USDT', 'Данный бот хорошо торгует на BTC', 1.0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+            ('E0V1E', 'FUTURE', 160, 'BTC/USDT', 'Данный бот круто торгует на BTC', 100 ,CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+            ('BB_RTR', 'SPOT', 100500, 'MANY', 'Не скам зуб даю', 500, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+            ('every_minute', 'SPOT', 70, 'BTC/USDT', 'Данный бот хорошо торгует на BTC', 100, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
           DO \$\$ BEGIN
               RAISE NOTICE 'Таблицы очищены, bots_info заполнена.';
