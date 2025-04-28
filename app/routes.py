@@ -786,19 +786,18 @@ async def get_bot_info(
 
 @auth_routes.post("/api/run-backtest")
 async def run_backtest(
-    bot_name   : str   = Form(...),
-    start_date : str   = Form(...),     # yyyy-mm-dd
-    end_date   : str   = Form(...),
-    depo       : float = Form(...),
-    user       : User  = Depends(get_current_user)
+    bot_name: str = Form(...),
+    start_date: str = Form(...),
+    end_date: str = Form(...),
+    depo: float = Form(...),
+    user: User = Depends(get_current_user)
 ):
-    depo = 100
     # ─── 1. валидация диапазона ────────────────────────────────────
     start_dt = datetime.combine(
         datetime.strptime(start_date, "%Y-%m-%d").date(),
         time.min, tzinfo=timezone.utc
     )
-    end_dt   = datetime.combine(
+    end_dt = datetime.combine(
         datetime.strptime(end_date, "%Y-%m-%d").date(),
         time.max, tzinfo=timezone.utc
     )
@@ -811,86 +810,100 @@ async def run_backtest(
     trades_qs = (
         Trade
         .filter(bot_info=bot, open_date__gte=start_dt, open_date__lte=end_dt)
-        .order_by("close_date")                           # важно для equity
-        .values(
-            "id", "pair", "profit_abs", "open_date",
-            "close_date", "trade_duration"
-        )
+        .order_by("close_date")
+        .values("id", "pair", "profit_abs", "open_date", "close_date", "trade_duration")
     )
     trades = await trades_qs
-
-    scale = Decimal(depo) / Decimal(bot.scale_for_backtest)
 
     if not trades:
         return {"error": "В указанном диапазоне сделок нет"}
 
-    # ─── 3. сводные цифры (profit, trades, win‑rate …) ─────────────
-    total_profit = sum(t["profit_abs"]* scale for t in trades)
-    wins         = sum(1 for t in trades if t["profit_abs"] > 0)
-    losses       = sum(1 for t in trades if t["profit_abs"] < 0)
-    total_trades = len(trades)
+    scale = Decimal(depo) / Decimal(bot.scale_for_backtest)
 
-    profit_factor = (
-        sum(t["profit_abs"]*scale for t in trades if t["profit_abs"] > 0) /
-        abs(sum(t["profit_abs"]*scale for t in trades if t["profit_abs"] < 0))
-    ) if losses else None
-
-    roi_pct = round((total_profit / Decimal(depo) * 100), 2) if depo else None
-    win_rate = round(wins / total_trades * 100, 2)
-
-    avg_duration = round(
-        sum(t["trade_duration"] for t in trades) / total_trades, 1
-    )
-
-    # ─── 4. equity‑curve + drawdown ────────────────────────────────
+    # ─── 3. Считаем все показатели ─────────────────────────────────
     equity_curve = []
-    equity       = Decimal(depo)
-    peak         = equity
-    dd_curve     = []
+    equity = Decimal(depo)
+    peak = equity
+    dd_curve = []
+
+    wins = 0
+    losses = 0
 
     for t in trades:
-        equity += t["profit_abs"] * scale
+        profit = Decimal(t["profit_abs"]) * scale
+        equity += profit
         equity_curve.append({
             "t": t["close_date"].isoformat(),
             "eq": float(equity)
         })
+
         if equity > peak:
             peak = equity
-        drawdown_pct = float((equity - peak) / peak * 100)
-        dd_curve.append({"t": t["close_date"].isoformat(), "dd": round(drawdown_pct, 2)})
 
+        drawdown_pct = float((equity - peak) / peak * 100)
+        dd_curve.append({
+            "t": t["close_date"].isoformat(),
+            "dd": round(drawdown_pct, 2)
+        })
+
+        if profit > 0:
+            wins += 1
+        elif profit < 0:
+            losses += 1
+
+    final_equity = equity
+    total_profit = final_equity - Decimal(depo)
+    total_trades = len(trades)
+
+    roi_pct = round((total_profit / Decimal(depo)) * 100, 2) if depo else None
+    win_rate = round((wins / total_trades) * 100, 2) if total_trades else 0
     max_drawdown = round(min(d["dd"] for d in dd_curve), 2)
 
-    # ─── 5. P/L по парам ───────────────────────────────────────────
+    profit_factor = None
+    if losses > 0:
+        gross_profit = sum(
+            Decimal(t["profit_abs"]) * scale for t in trades if t["profit_abs"] > 0
+        )
+        gross_loss = sum(
+            Decimal(t["profit_abs"]) * scale for t in trades if t["profit_abs"] < 0
+        )
+        profit_factor = round(float(gross_profit / abs(gross_loss)), 2)
+
+    avg_duration = round(
+        sum(t["trade_duration"] for t in trades) / total_trades, 1
+    ) if total_trades else 0
+
+    # ─── 4. P/L по парам ───────────────────────────────────────────
     pair_pnl = {}
     for t in trades:
+        profit = Decimal(t["profit_abs"]) * scale
         pair_pnl.setdefault(t["pair"], Decimal("0"))
-        pair_pnl[t["pair"]] += t["profit_abs"] * scale
+        pair_pnl[t["pair"]] += profit
 
     pair_pnl_list = [
         {"pair": p, "pnl": float(v)} for p, v in pair_pnl.items()
     ]
 
-    # ─── 6. Top‑5 best / worst сделки ──────────────────────────────
+    # ─── 5. Top‑5 best / worst сделки ──────────────────────────────
     sorted_trades = sorted(trades, key=lambda x: x["profit_abs"], reverse=True)
-    best_5  = [ {**t, "profit_abs": float(t["profit_abs"])} for t in sorted_trades[:5] ]
-    worst_5 = [ {**t, "profit_abs": float(t["profit_abs"])} for t in sorted_trades[-5:] ]
+    best_5 = [{**t, "profit_abs": float(Decimal(t["profit_abs"]) * scale)} for t in sorted_trades[:5]]
+    worst_5 = [{**t, "profit_abs": float(Decimal(t["profit_abs"]) * scale)} for t in sorted_trades[-5:]]
 
-    # ─── 7. ответ ──────────────────────────────────────────────────
+    # ─── 6. Формируем ответ ────────────────────────────────────────
     return {
         "summary": {
-            "net_profit"   : float(total_profit),
-            "roi_pct"      : roi_pct,
-            "trades"       : total_trades,
-            "wins_pct"     : win_rate,
-            "profit_factor": round(profit_factor, 2) if profit_factor else None,
-            "max_dd_pct"   : max_drawdown,
-            "avg_dur_min"  : avg_duration,
+            "net_profit": float(total_profit),
+            "roi_pct": roi_pct,
+            "trades": total_trades,
+            "wins_pct": win_rate,
+            "profit_factor": profit_factor,
+            "max_dd_pct": max_drawdown,
+            "avg_dur_min": avg_duration,
         },
-        "equity"    : equity_curve,
-        "drawdown"  : dd_curve,
-        "pair_pnl"  : pair_pnl_list,
-        "scale": scale,
+        "equity": equity_curve,
+        "drawdown": dd_curve,
+        "pair_pnl": pair_pnl_list,
+        "scale": float(scale),
         "top": {
             "best": best_5,
             "worst": worst_5
