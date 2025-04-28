@@ -825,14 +825,14 @@ async def run_backtest(
         return {"error": "В указанном диапазоне сделок нет"}
 
     # ─── 3. сводные цифры (profit, trades, win‑rate …) ─────────────
-    total_profit = sum(t["profit_abs"] for t in trades) * scale
+    total_profit = sum(t["profit_abs"]* scale for t in trades)
     wins         = sum(1 for t in trades if t["profit_abs"] > 0)
     losses       = sum(1 for t in trades if t["profit_abs"] < 0)
     total_trades = len(trades)
 
     profit_factor = (
-        sum(t["profit_abs"] for t in trades if t["profit_abs"] > 0)*scale /
-        abs(sum(t["profit_abs"] for t in trades if t["profit_abs"] < 0)*scale)
+        sum(t["profit_abs"]*scale for t in trades if t["profit_abs"] > 0) /
+        abs(sum(t["profit_abs"]*scale for t in trades if t["profit_abs"] < 0))
     ) if losses else None
 
     roi_pct = round((total_profit / Decimal(depo) * 100), 2) if depo else None
