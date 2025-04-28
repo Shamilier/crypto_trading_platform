@@ -825,14 +825,14 @@ async def run_backtest(
         return {"error": "В указанном диапазоне сделок нет"}
 
     # ─── 3. сводные цифры (profit, trades, win‑rate …) ─────────────
-    total_profit = sum(t["profit_abs"] for t in trades)
+    total_profit = sum(t["profit_abs"] for t in trades) * scale
     wins         = sum(1 for t in trades if t["profit_abs"] > 0)
     losses       = sum(1 for t in trades if t["profit_abs"] < 0)
     total_trades = len(trades)
 
     profit_factor = (
-        sum(t["profit_abs"] for t in trades if t["profit_abs"] > 0) /
-        abs(sum(t["profit_abs"] for t in trades if t["profit_abs"] < 0))
+        sum(t["profit_abs"] for t in trades if t["profit_abs"] > 0)*scale /
+        abs(sum(t["profit_abs"] for t in trades if t["profit_abs"] < 0)*scale)
     ) if losses else None
 
     roi_pct = round((total_profit / Decimal(depo) * 100), 2) if depo else None
@@ -849,7 +849,7 @@ async def run_backtest(
     dd_curve     = []
 
     for t in trades:
-        equity += t["profit_abs"]
+        equity += t["profit_abs"] * scale
         equity_curve.append({
             "t": t["close_date"].isoformat(),
             "eq": float(equity)
@@ -865,7 +865,7 @@ async def run_backtest(
     pair_pnl = {}
     for t in trades:
         pair_pnl.setdefault(t["pair"], Decimal("0"))
-        pair_pnl[t["pair"]] += t["profit_abs"]
+        pair_pnl[t["pair"]] += t["profit_abs"] * scale
 
     pair_pnl_list = [
         {"pair": p, "pnl": float(v)} for p, v in pair_pnl.items()
@@ -947,7 +947,7 @@ async def backtest_trades(
         t["open_ts"] = int(t["open_date"].timestamp() * 1000)
         t["close_ts"] = int(t["close_date"].timestamp() * 1000)
         # Profit % как число
-        t["profit_pct"] = float(Decimal(t["profit_ratio"]) * 100)
+        t["profit_pct"] = float(Decimal(t["profit_ratio"]) * 100 * scale)
 
     return {
         "items": items,
