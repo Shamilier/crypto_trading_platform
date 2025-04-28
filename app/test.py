@@ -2,12 +2,12 @@ import json
 import glob
 
 # Путь к файлу результата
-result_file = "/Users/shamilgaliev18mail.ru/cry/crypto_trading_platform/user_data/example/backtest_results/BB.json"
+result_file = "/Users/shamilgaliev18mail.ru/cry/crypto_trading_platform/user_data/example/backtest_results/BB_RTR_backtest.json"
 
 # Список исходных файлов
-source_files = ["/Users/shamilgaliev18mail.ru/cry/crypto_trading_platform/user_data/example/backtest_results/u111-2025-04-28_11-17-45.json",
-                 "/Users/shamilgaliev18mail.ru/cry/crypto_trading_platform/user_data/example/backtest_results/u222-2025-04-28_11-20-43.json",
-                   "/Users/shamilgaliev18mail.ru/cry/crypto_trading_platform/user_data/example/backtest_results/u333-2025-04-28_11-24-04.json"]
+source_files = ["/Users/shamilgaliev18mail.ru/cry/crypto_trading_platform/user_data/example/backtest_results/u111-2025-04-28_12-24-01.json",
+                 "/Users/shamilgaliev18mail.ru/cry/crypto_trading_platform/user_data/example/backtest_results/u222-2025-04-28_12-25-55.json",
+                   "/Users/shamilgaliev18mail.ru/cry/crypto_trading_platform/user_data/example/backtest_results/u333-2025-04-28_12-28-09.json"]
 
 # Загрузка начального result файла
 with open(result_file, "r") as rf:
